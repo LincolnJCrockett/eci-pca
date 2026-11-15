@@ -1,0 +1,30 @@
+benchmark,0
+MATH level 5,0.07
+MirrorCode,0.072
+Furniture Assembly,0.097
+WeirdML v3,0.103
+EBR-bench,0.112
+Balrog,0.14
+APEX-Agents,0.141
+GeoBench,0.145
+Aider polyglot,0.145
+Fiction.LiveBench,0.149
+FrontierCode,0.16
+GPQA diamond,0.165
+OTIS Mock AIME 2024-2025,0.169
+DTBench,0.169
+FrontierMath-Tier-4-v2-Private,0.185
+Mystery Game Puzzles,0.19
+WeirdML,0.191
+SimpleQA Verified,0.196
+METR Time Horizons,0.198
+ProofBench,0.205
+Chess Puzzles,0.205
+LMCA,0.206
+SimpleBench,0.21
+ARC-AGI-2,0.21
+VPCT,0.213
+FrontierMath-Tiers-1-3-v2-Private,0.215
+ARC-AGI,0.223
+GSO-Bench,0.234
+Terminal Bench,0.384
