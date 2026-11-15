@@ -1,55 +1,73 @@
-# What does the ECI add to, or lose from, its benchmarks?
+# How much do the ECI benchmarks share, and what does the ECI miss?
 
-Data: Epoch AI `benchmark_data.zip` (CC-BY; Epoch AI, https://epoch.ai/benchmarks), retrieved 2026-11-15; `processed_data_for_eci.csv` is the table the ECI fit uses. Plan: `PLAN.md`. Main script: `scripts/spec_pca.py`; outputs in `outputs/spec_logit/`; log in `outputs/spec_logit_log.txt`.
+Data: Epoch AI `benchmark_data.zip` (CC-BY; Epoch AI, https://epoch.ai/benchmarks), retrieved 2026-11-15; `processed_data_for_eci.csv` is the table the ECI fit uses.
+**Sample:** 191 models x 29 benchmarks, 2,078 scores (37.5% of cells). Logit scores unless noted. Excluded: 2 superseded benchmarks, benchmarks with < 25 models, and 9 older benchmarks (MMLU, GSM8K, HellaSwag, ...) that share almost no models with modern ones; models need >= 4 scores. The official ECI also uses those extra benchmarks.
+Code: `scripts/variance_and_eci_resid.py`, `scripts/eci_vs_components_v2.py`, shared estimators in `scripts/common.py`. Outputs: `outputs/variance/`; logs: `outputs/variance_log.txt`, `outputs/eci_vs_components_v2_log.txt`.
 
-**Sample:** 191 models x 29 benchmarks, 37.5% of cells observed (models need >= 4 scores). Scores are logit-transformed (raw scores were not re-run). Excluded: 2 superseded benchmarks, benchmarks with < 25 models, and 9 older benchmarks (MMLU, GSM8K, HellaSwag, etc.) that share almost no models with modern ones. The official ECI uses those too, so some gap between ECI and anything computed here is expected.
+## Correction to my previous write-up
+Earlier I centered each benchmark on its observed mean (the standard PCA step, "A"). That is biased here, because the models tested on a benchmark are not representative: hard benchmarks are mostly run on strong models. Re-estimating benchmark intercepts jointly with the factor ("AJ") fixes this, and it changes several earlier conclusions:
+- PC1 vs ECI: r = **0.995** (was 0.968). Only **~1%** of ECI variance is outside PC1 (was ~6%).
+- The earlier "ECI corrects for benchmark difficulty" finding (r = -0.52 with easiness of benchmarks taken) was an artifact; it is -0.09 now.
+- "About two reliable dimensions" was wrong: with joint intercepts a second component does *not* improve held-out prediction.
+- The earlier spec-D result ("ECI disfavors agentic work, r = -0.48") is retracted. With the corrected version it is +0.10, not significant.
 
-## Specifications
-| | transform | what it removes |
-|---|---|---|
-| A | subtract benchmark mean | benchmark difficulty (ordinary PCA; model quality remains) |
-| B | subtract model mean, **no** column centering | model quality (benchmark difficulty remains) |
-| C | residual of two-way fixed effects (model + benchmark) | both, assuming every benchmark has slope 1 on ability |
-| CJ | fixed effects and low-rank part fitted jointly | robustness check on C |
-| D | residual after rank-1 fit with benchmark means | both, **allowing each benchmark its own slope** (added after C's diagnostics) |
+## 1. How much of the benchmark data does PC1 explain?
+"Variation in the data" = variation across models within each benchmark (benchmark means, i.e. difficulty, are excluded).
 
-In complete data, B with column centering would equal C. The specs differ here only because the data are sparse, which is why B is left uncentered. Low-rank fits use iterative SVD on observed cells. Columns are scaled by RMS after the base is removed.
+| | in-sample, benchmarks weighted equally | in-sample, pooled logit | held-out R^2* |
+|---|---|---|---|
+| Classical PCA (observed benchmark means), PC1 | 66% | 69% | 60% |
+| ... first 2 / 3 / 4 PCs | 87% / 91% / 94% | 89% / 92% / 94% | 75% (k=2, best) |
+| **Joint-intercept PC1 (AJ)** | **84%** | **87%** | **82%** (best) |
+| ... first 2 / 3 / 4 PCs | 89% / 92% / 94% | 90% / 93% / 94% | 79% / 74% / 73% |
+| Official ECI as the single score (per-benchmark OLS) | 83% | 87% | n/a (ECI saw these cells) |
+| Two-way FE additive (no slopes) | 63% | 76% | 69% |
 
-## Q1. How is ECI *not* the first PC?
-- ECI vs rank-1 first PC (spec A): **r = 0.968** [0.96, 0.98], R^2 = 0.94, Spearman 0.96. Versus the two-way-FE model effect: r = 0.990. Adding a quadratic term gains nothing, so the relationship is linear.
-- It is not sparse-data noise: r is 0.957 / 0.957 / 0.972 for low / medium / high-coverage models.
-- So ~6% of ECI variance is not in PC1. What it correlates with (ECI residual after PC1):
-  - mean easiness of the benchmarks the model took: **r = -0.52** [-0.62, -0.41]. PC1 gives inflated scores to models tested mostly on easy benchmarks, and ECI corrects for difficulty.
-  - release date: +0.42; number of benchmarks taken: +0.26; closed weights: -0.17.
-  - by benchmark (partial correlation of ECI residual with that benchmark's score residual after PC1, `q1_benchmark_partial_corr.csv`): highest for METR Time Horizons (0.78), OTIS AIME (0.77), ARC-AGI-1/2 (0.76), MATH level 5 (0.72), GPQA (0.70), Terminal Bench (0.63), FrontierMath T1-3 (0.57). Negative for GeoBench (-0.42), Mystery Game Puzzles (-0.28), SimpleQA Verified (-0.27). Relative to PC1, ECI leans on math, science reasoning and ARC-AGI, and less on geography, factual recall and puzzle benchmarks. Caveat: benchmarks with many scores (GPQA, AIME, n~170) mechanically weigh more in ECI, so this mixes "weights" and "sample size".
+*Held-out R^2 is relative to the benchmark-mean model, from 5-fold CV repeated twice. In the correlation-matrix view, PC1 is 51% of total variance, PC2 15%, PC3 6.5% (pairwise-overlap estimate). The classical numbers understate PC1 for the selection reason above.
 
-## Q2. Interpretable components, and how ECI relates to them
-Second dimension: held-out prediction error (5-fold CV, `cv_mse.csv`) is best at about two dimensions in total: A at k=2 (0.70 vs 1.12 at k=1), C at k=1 (0.69 vs 0.87 at k=0). Beyond that it overfits. So there is roughly one reliable dimension after general ability. Further components are weak (bootstrap stability below).
+**Answer:** PC1, properly estimated, accounts for roughly **85% of within-benchmark variation** (82% out of sample). More components fit better in-sample but predict worse out of sample.
 
-Components (loadings: `loadings_*.csv`, `fig_loadings.png`):
-- **A PC2** (bootstrap stability 0.85): a difficulty/era axis. Easier or older benchmarks (Aider polyglot, Fiction.LiveBench, MATH level 5, METR) vs newest hardest ones (WeirdML v3, Furniture Assembly, MirrorCode, EBR-bench). Correlated 0.72 with model release date. Not a skill.
-- **D PC1** (stability 0.62): long-horizon agentic work (MirrorCode, APEX-Agents, WeirdML v3, Furniture Assembly) vs math and abstract reasoning (FrontierMath T1-3, ARC-AGI-1/2, chess puzzles).
-- **D PC3** (stability 0.71): GeoBench, MATH level 5, VPCT, OTIS AIME vs SimpleQA, SimpleBench, Mystery Game Puzzles. I don't have a confident label.
+## 2. What is not explained by the ECI?
+- Overall: ECI explains ~83-87% of within-benchmark variation, so **~13-17%** is left. It is essentially the same as PC1 (r = 0.995, `fig_variance_explained.png`).
+- It is very uneven across benchmarks (`per_benchmark_variance_explained.csv`, `fig_eci_explained_by_benchmark.png`; share of variance across models explained by ECI, raw-score logistic fit):
+  - **>= 94%:** ARC-AGI (98%), METR Time Horizons (96%), OTIS AIME, FrontierMath T1-3, LMCA, WeirdML v3, GSO-Bench, ARC-AGI-2 (~95%), GPQA, MATH level 5 (94%).
+  - **Poorly captured:** GeoBench (19%), Furniture Assembly (46%), MirrorCode (50%), Fiction.LiveBench (57%), SimpleQA Verified (62%), APEX-Agents (74%), Chess Puzzles (76%), FrontierCode (77%). VPCT shows 4% under the logistic fit, but 55% under the logit-linear fit, so I suspect a failed curve fit, not a true value.
+  - The poorly captured benchmarks are geolocation, long-context fiction, factual recall, physical/spatial tasks and long-horizon software tasks.
 
-ECI after removing its relation to PC1 (`q2_eci_vs_components.csv`, `fig_eci_vs_components.png`). Since D is built orthogonal to PC1, these say what ECI deviates toward:
-- **D PC1: r = -0.48** [-0.58, -0.36], and -0.48 with release date partialled out. Models relatively stronger at long-horizon agentic work than at math/abstract reasoning get a lower ECI than PC1 implies. ECI relatively favours math/abstract reasoning over long-horizon agentic work.
-- **D PC3: r = +0.60** [+0.51, +0.69], +0.49 after the date control.
-- B PC3 points the same way as D PC1 (-0.30, -0.44 after date). The other components are near zero or lose significance after the date control.
+## 3. Is there structure in what the ECI misses? (your residual specification, "E")
+For each benchmark I fit score = floor + (1-floor) x sigmoid(a (ECI - c)) on observed models, took residuals, standardized columns, and ran low-rank PCA on them (raw scores).
+- **Statistically, yes but weakly.** Five eigenvalues of the residual correlation matrix exceed a shuffled null (4.05, 3.71, 2.95, 2.74, 2.11 vs 3.02, 2.68, 2.42, 2.24, 2.05).
+- **Predictively, no.** Adding components to the ECI-only prediction makes held-out error worse (MSE 0.0090 to 0.0113 at k=1; the ECI baseline is optimistic because ECI was fit on these cells). In-sample the first three components "explain" 22/45/59% of the residual, but that is overfitting: models have a median of 9 scores.
+- **Stability is modest** (bootstrap best-match cosine 0.62, 0.68, 0.73). E2 and E3 agree with the corresponding components of the joint-intercept PCA residual (DJ2, DJ3; cosine 0.75, 0.82). E1 does not (0.30), so I trust it least.
 
-## Why C is not trusted
-- The FE-residual eigenvalue test finds three components above a shuffled null (7.4, 4.6, 3.1 vs 3.1, 2.8, 2.5). But they are contaminated by benchmarks having different slopes on ability (0.27 to 2.03). C PC3's loadings correlate -0.71 with benchmark slope and its scores correlate -0.66 with model quality.
-- D allows per-benchmark slopes, and those correlations go to about 0.
-- C and CJ loadings agree only weakly (cosine 0.2 to 0.4).
+Components (loadings in `E_loadings.csv`, `fig_E_loadings.png`):
+- **E1** (+) Furniture Assembly, SimpleQA, GeoBench, Chess vs (-) FrontierCode, WeirdML v3, APEX-Agents, MirrorCode, ARC-AGI: factual/spatial vs agentic software work. Correlated with ECI (0.41) and date (0.35), so it is partly a trend where the curve doesn't fit.
+- **E2** (+) GSO-Bench, ProofBench, MirrorCode, WeirdML, Terminal Bench, Aider vs (-) VPCT, SimpleBench, ARC-AGI-2, Mystery Game Puzzles, Fiction.LiveBench, Chess: software engineering and formal proof vs perceptual/puzzle tasks.
+- **E3** (+) FrontierMath T1-3 and T4, MATH level 5, OTIS AIME vs (-) SimpleBench, MirrorCode, LMCA, Balrog, Aider: competition math vs agentic/common-sense tasks.
+
+Bottom line: after the shared factor, the leftover variation is mostly benchmark-specific and noisy; a modest "math vs. agentic/common-sense" axis (E3 / DJ3) is the clearest, and the others are tentative.
+
+## 4. What does ECI over- or under-value relative to PC1?
+ECI minus its linear fit on PC1 is only ~1% of ECI's variance (`eci_vs_components_v2_log.txt`). It correlates with:
+- release date: +0.21 [0.07, 0.34]. It does not correlate with the number of benchmarks taken (-0.01) or benchmark easiness (-0.09).
+- The component "competition math vs. agentic/common-sense": **E3 r = +0.38 [0.25, 0.50]**, **DJ3 r = +0.37 [0.24, 0.48]**, essentially unchanged after partialling out release date (0.40, 0.35). Models strong in competition math relative to their other scores get slightly higher ECI than PC1 implies.
+- By benchmark (`q1_partial_corr_AJ.csv`): ECI residual is positively related to METR Time Horizons (0.71), Furniture Assembly (0.66), MATH level 5 (0.61), WeirdML v3 (0.57), OTIS AIME (0.52), FrontierMath T4 (0.48) and negatively to Fiction.LiveBench (-0.63), GeoBench (-0.62), VPCT (-0.58), SimpleQA (-0.56), Mystery Game Puzzles (-0.53), Balrog (-0.44).
+- Reading: ECI leans slightly toward competition math and METR, and slightly away from long-context, geolocation, vision, factual-recall and puzzle benchmarks. The size is small: ECI and PC1 are almost the same quantity.
 
 ## Caveats
-- D's components are only moderately stable under model bootstrap (cosine 0.6 to 0.7; 10th percentile as low as 0.3). Treat the labels as hypotheses.
 - Confidence intervals treat models as independent and ignore uncertainty in the components. Models from the same family are correlated, so true uncertainty is wider.
-- A mechanical caveat: correlating ECI with "ECI after FE" is partly artifactual (a spike inflates the model's fixed effect). I therefore base the conclusions on ECI after PC1, and report FE versions only in the CSV.
-- In-sample fit (`insample_r2.csv`): ECI per-benchmark linear 87% of within-benchmark variance, FE additive 76%, EM rank-1 PCA 69%, rank-2 89%. This is not a fair "information lost" measure: ECI also used the other benchmarks and these same cells, and the PCA objective is weighted differently. A held-out comparison was not done, because ECI was fit on the held-out cells.
-- Labels like "agentic" or "math" are my reading of loadings.
+- "In-sample" figures are optimistic for higher-rank fits. Held-out R^2 is the more reliable comparison, but it is itself noisy given the sparsity.
+- Component labels are my reading of the loadings.
+- All of this is on the 29-benchmark subset. ECI also uses the 9 older benchmarks and others with < 25 models; some of the ~1% gap between ECI and PC1 may come from those.
+- Logit transform; the raw-score version of the PCA analyses was not run.
+- Spec E uses raw scores and the others use logits.
 
-## Earlier analysis (superseded)
-`scripts/run_pca.py` and `scripts/residual_pca.py` (outputs in `outputs/`, not `outputs/spec_logit/`) are the first pass. The "residual after ECI" analysis there used the official ECI as the control, so it can't say what ECI adds, and it was nonlinear and not equivalent to PCs 2+. Its main useful finding survives: PC2 of benchmark-demeaned data is largely difficulty/era.
+## Earlier analyses (partly superseded)
+- `scripts/spec_pca.py`, `outputs/spec_logit/`: demeaned-by-benchmark (A), by-model (B), two-way FE (C), joint FE (CJ) and slope-adjusted (D). Conclusions that depended on A's fixed-mean centering (A PC2 "difficulty axis", D's ECI relationships, "two reliable dimensions") should be treated as superseded by the above. C's leading components reflect benchmark-slope differences, not skills.
+- `scripts/run_pca.py`, `scripts/residual_pca.py`: first pass.
 
 ## Re-run
-`python -I scripts/spec_pca.py data/extracted outputs/spec_logit logit` (about 4 minutes).
+```
+python -I scripts/variance_and_eci_resid.py data/extracted outputs/variance
+python -I scripts/eci_vs_components_v2.py data/extracted outputs/variance
+```

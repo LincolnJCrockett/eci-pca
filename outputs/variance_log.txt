@@ -1,0 +1,109 @@
+sample: 191 models x 29 benchmarks, 0.375 observed, 2078 scores
+
+IN-SAMPLE share of within-benchmark variance explained (logit scores; observed cells)
+                                               R2_in_sample_equal_weight  R2_in_sample_pooled_logit
+model                                                                                              
+benchmark means only                                               0.000                      0.000
+A rank-1 (PCA, observed benchmark means)                           0.662                      0.689
+A rank-2 (PCA, observed benchmark means)                           0.866                      0.888
+A rank-3 (PCA, observed benchmark means)                           0.911                      0.915
+A rank-4 (PCA, observed benchmark means)                           0.937                      0.937
+AJ rank-1 (PCA, intercepts estimated jointly)                      0.840                      0.866
+AJ rank-2 (PCA, intercepts estimated jointly)                      0.891                      0.898
+AJ rank-3 (PCA, intercepts estimated jointly)                      0.919                      0.925
+AJ rank-4 (PCA, intercepts estimated jointly)                      0.942                      0.944
+two-way FE additive (no slopes)                                    0.625                      0.756
+official ECI, per-benchmark OLS linear                             0.834                      0.872
+official ECI, per-benchmark OLS quadratic                          0.850                      0.887
+
+HELD-OUT R2 vs the benchmark-mean model (5-fold CV x2, pooled logit MSE)
+   A (fixed means)  AJ (joint intercepts)
+k                                        
+0            0.000                  0.000
+1            0.604                  0.821
+2            0.752                  0.793
+3            0.696                  0.741
+4            0.632                  0.727
+5            0.622                  0.703
+6            0.574                  0.678
+two-way FE additive + k comps, held-out R2: {0: np.float64(0.692), 1: np.float64(0.754), 2: np.float64(0.748)}
+
+classical view: pairwise-correlation eigenvalues, share of total variance: [0.514 0.15  0.065 0.055 0.041]
+
+ECI vs rank-1 PC1
+  A  fixed means         r=0.968 [0.958,0.976] spearman=0.959 | by coverage tercile: [np.float64(0.957), np.float64(0.957), np.float64(0.972)]
+  AJ joint intercepts    r=0.995 [0.994,0.996] spearman=0.995 | by coverage tercile: [np.float64(0.992), np.float64(0.993), np.float64(0.993)]
+
+Share of each benchmark's variance across models explained by the official ECI (logistic, raw scores) and by rank-1 PCA (logit):
+                                   n_models  R2_ECI_logistic_raw  R2_ECI_OLS_logit  R2_PCA_rank1_A_logit  R2_PCA_rank1_AJ_logit
+VPCT                                     25                 0.04              0.55                  0.46                   0.69
+GeoBench                                 44                 0.19              0.23                  0.35                   0.30
+Furniture Assembly                       39                 0.46              0.79                  0.24                   0.70
+MirrorCode                               39                 0.50              0.49                  0.11                   0.43
+Fiction.LiveBench                        50                 0.57              0.57                  0.31                   0.74
+SimpleQA Verified                        88                 0.62              0.62                  0.67                   0.70
+APEX-Agents                              58                 0.74              0.72                  0.37                   0.73
+Chess Puzzles                            87                 0.76              0.80                  0.73                   0.82
+FrontierCode                             42                 0.77              0.77                  0.44                   0.76
+SimpleBench                              95                 0.81              0.81                  0.84                   0.84
+Aider polyglot                           44                 0.83              0.81                  0.38                   0.84
+DTBench                                 147                 0.86              0.93                  0.83                   0.95
+Mystery Game Puzzles                     82                 0.87              0.61                  0.67                   0.69
+Balrog                                   29                 0.87              0.83                  0.72                   0.86
+WeirdML                                 115                 0.89              0.88                  0.77                   0.89
+ProofBench                               70                 0.90              0.83                  0.60                   0.80
+FrontierMath-Tier-4-v2-Private           72                 0.92              0.89                  0.55                   0.85
+EBR-bench                                31                 0.93              0.86                  0.34                   0.83
+Terminal Bench                           31                 0.93              0.91                  0.84                   0.91
+MATH level 5                             71                 0.94              0.93                  0.25                   0.89
+GPQA diamond                            170                 0.94              0.94                  0.78                   0.93
+ARC-AGI-2                                90                 0.95              0.91                  0.78                   0.90
+GSO-Bench                                28                 0.95              0.89                  0.77                   0.87
+WeirdML v3                               26                 0.95              0.93                  0.29                   0.89
+LMCA                                    126                 0.95              0.92                  0.88                   0.93
+FrontierMath-Tiers-1-3-v2-Private        90                 0.95              0.94                  0.84                   0.93
+OTIS Mock AIME 2024-2025                166                 0.95              0.93                  0.77                   0.91
+METR Time Horizons                       32                 0.96              0.96                  0.64                   0.92
+ARC-AGI                                  91                 0.98              0.94                  0.80                   0.93
+pooled raw-score R2 of ECI logistic: 0.874;  equal-weight mean: 0.791
+
+Spec E held-out MSE (raw scores): benchmark means 0.0680; ECI-logistic only 0.0090 (held-out R2 0.868, optimistic: ECI saw these cells)
+  + k components of the ECI-residual: MSE {0: np.float64(0.009), 1: np.float64(0.0113), 2: np.float64(0.0114), 3: np.float64(0.0135), 4: np.float64(0.0173), 5: np.float64(0.0195), 6: np.float64(0.0206)} 
+  share of the ECI-residual variance predictable out of sample: {0: np.float64(0.0), 1: np.float64(-0.257), 2: np.float64(-0.272), 3: np.float64(-0.507), 4: np.float64(-0.926), 5: np.float64(-1.177), 6: np.float64(-1.304)}
+in-sample share of ECI-residual variance (equal weight) explained by k components: {1: np.float64(0.225), 2: np.float64(0.45), 3: np.float64(0.588)}
+
+Components of the ECI-residual (loadings; sign set so the largest is +)
+  E1 +: Furniture Assembly 0.40, SimpleQA Verified 0.28, GeoBench 0.25, Chess Puzzles 0.16, GPQA diamond 0.11, DTBench 0.09
+      -: FrontierCode -0.38, WeirdML v3 -0.36, APEX-Agents -0.35, MirrorCode -0.34, ARC-AGI -0.22, METR Time Horizons -0.17
+  E2 +: GSO-Bench 0.40, ProofBench 0.30, MirrorCode 0.21, WeirdML 0.20, Terminal Bench 0.17, Aider polyglot 0.15
+      -: VPCT -0.36, SimpleBench -0.29, ARC-AGI-2 -0.27, Mystery Game Puzzles -0.26, Fiction.LiveBench -0.23, Chess Puzzles -0.22
+  E3 +: FrontierMath-Tiers-1-3-v2-Private 0.46, FrontierMath-Tier-4-v2-Private 0.34, MATH level 5 0.29, OTIS Mock AIME 2024-2025 0.27, FrontierCode 0.23, Chess Puzzles 0.20
+      -: SimpleBench -0.30, MirrorCode -0.25, LMCA -0.23, Balrog -0.20, Aider polyglot -0.15, Fiction.LiveBench -0.15
+  corr of E scores with release date: [np.float64(0.35), np.float64(-0.32), np.float64(-0.06)] | with ECI: [np.float64(0.41), np.float64(-0.3), np.float64(-0.1)]
+
+ECI-residual correlation matrix, eigenvalues vs shuffled-null 95th pct:
+  eig1: 4.05  null 3.02 ABOVE
+  eig2: 3.71  null 2.68 ABOVE
+  eig3: 2.95  null 2.42 ABOVE
+  eig4: 2.74  null 2.24 ABOVE
+  eig5: 2.11  null 2.05 ABOVE
+  eig6: 1.67  null 1.89 
+bootstrap stability of E1..E3 (mean best-match |cosine|): [0.62 0.68 0.73]  10th pct: [0.4  0.51 0.55]
+|cosine| of E1..E3 loadings (rows) with D (PCA rank-1 with fixed means removed) components (cols):
+ [[0.26 0.01 0.14]
+ [0.26 0.28 0.02]
+ [0.4  0.59 0.25]]
+  |corr| of model scores:
+ [[0.35 0.24 0.3 ]
+ [0.01 0.15 0.07]
+ [0.08 0.46 0.34]]
+|cosine| of E1..E3 loadings (rows) with DJ (PCA rank-1 with joint intercepts removed) components (cols):
+ [[0.3  0.09 0.21]
+ [0.07 0.75 0.02]
+ [0.09 0.08 0.82]]
+  |corr| of model scores:
+ [[0.53 0.02 0.08]
+ [0.1  0.37 0.03]
+ [0.08 0.08 0.63]]
+
+figures written to outputs/variance
