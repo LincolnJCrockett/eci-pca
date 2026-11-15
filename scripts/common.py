@@ -134,3 +134,71 @@ def pairwise_eigs(Xr, min_periods=12):
     C = pd.DataFrame(Xr).corr(min_periods=min_periods).fillna(0).to_numpy(copy=True); np.fill_diagonal(C, 1)
     w, V = np.linalg.eigh(C); w = np.clip(w, 1e-6, None); C = (V * w) @ V.T; s_ = np.sqrt(np.diag(C)); C /= np.outer(s_, s_)
     return np.sort(np.linalg.eigvalsh(C))[::-1]
+
+
+# ---------- one-dimensional score under alternative losses ----------
+from scipy.optimize import minimize
+
+
+def prep(X):
+    idx = [np.where(~np.isnan(X[:, j]))[0] for j in range(X.shape[1])]
+    yc = [X[i, j] - X[i, j].mean() for j, i in enumerate(idx)]
+    return idx, yc, [np.linalg.norm(y) for y in yc]
+
+
+def rvals(theta, data):
+    """per-benchmark correlation between the score and the benchmark over observed models"""
+    idx, yc, ny = data; r = np.zeros(len(idx)); parts = []
+    for j, (i, y, l) in enumerate(zip(idx, yc, ny)):
+        c = theta[i] - theta[i].mean(); nc = np.linalg.norm(c) + 1e-12; r[j] = c @ y / (nc * l); parts.append((c, nc))
+    return r, parts
+
+
+def pnorm_obj(theta, p, data):
+    """p-norm over benchmarks of u_b = 1 - r_b|r_b| (= 1 - R2_b when the slope is positive), with gradient"""
+    idx, yc, ny = data; r, parts = rvals(theta, data)
+    u = np.clip(1 - r * np.abs(r), 1e-9, None); um = u.max(); v = u / um; S = np.mean(v ** p); F = um * S ** (1 / p)
+    w = S ** (1 / p - 1) * v ** (p - 1) / len(u); g = np.zeros_like(theta)
+    for j, (i, y, l) in enumerate(zip(idx, yc, ny)):
+        c, nc = parts[j]; g[i] += w[j] * (-2 * abs(r[j])) * (y / (nc * l) - r[j] * c / nc ** 2)
+    return F, g
+
+
+def pnorm_solve(X, ps, init):
+    """warm-started path over p; returns {p: standardized score vector}"""
+    data = prep(X); th = (init - init.mean()) / init.std(); path = {}
+    for p in ps:
+        res = minimize(pnorm_obj, th, args=(p, data), jac=True, method="L-BFGS-B", options=dict(maxiter=3000, maxfun=6000))
+        th = (res.x - res.x.mean()) / res.x.std(); path[p] = th.copy()
+    return path
+
+
+def profile(theta, data):
+    r, _ = rvals(theta, data); return r * np.abs(r)
+
+
+def joint_solve(X, loss, init, deltas=(0.1, 0.03, 0.01)):
+    """Score theta_i plus per-benchmark intercept a_b and slope g_b, jointly minimising a cell-level loss on
+    normalised scores y_ib = (x_ib - mean_b) / sd_b:  e_ib = y_ib - a_b - g_b theta_i.
+      mse_cells : sum_b sd_b^2 sum_i e^2 / N       (squared error in raw logit units; benchmarks weighted by size and spread)
+      mse_bench : (1/m) sum_b (1/n_b) sum_i e^2    (benchmarks weighted equally)
+      mae_bench : (1/m) sum_b (1/n_b) sum_i |e|    (absolute-value loss; |e| smoothed as sqrt(e^2 + delta^2) - delta, delta shrunk)"""
+    n, m = X.shape; I, J = np.where(~np.isnan(X)); Y0 = X[I, J]; nb = np.bincount(J, minlength=m)
+    mu = np.bincount(J, Y0, minlength=m) / nb; sd = np.sqrt(np.bincount(J, (Y0 - mu[J]) ** 2, minlength=m) / nb); Y = (Y0 - mu[J]) / sd[J]
+    W = sd[J] ** 2 / len(Y) if loss == "mse_cells" else 1 / (m * nb[J])
+    th = (init - init.mean()) / init.std(); a = np.zeros(m); g = np.zeros(m)
+    for j in range(m):
+        o = J == j; g[j], a[j] = np.polyfit(th[I[o]], Y[o], 1)
+
+    def f(par, delta):
+        t, aa, gg = par[:n], par[n:n + m], par[n + m:]; e = Y - aa[J] - gg[J] * t[I]
+        if loss == "mae_bench":
+            s = np.sqrt(e * e + delta * delta); L = (W * (s - delta)).sum(); d = W * e / s
+        else:
+            L = (W * e * e).sum(); d = 2 * W * e
+        return L, np.r_[-np.bincount(I, d * gg[J], minlength=n), -np.bincount(J, d, minlength=m), -np.bincount(J, d * t[I], minlength=m)]
+
+    par = np.r_[th, a, g]
+    for dl in (deltas if loss == "mae_bench" else (None,)):
+        par = minimize(f, par, args=(dl,), jac=True, method="L-BFGS-B", options=dict(maxiter=5000, maxfun=10000)).x
+    t = par[:n]; return (t - t.mean()) / t.std()

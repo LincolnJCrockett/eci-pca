@@ -54,6 +54,25 @@ ECI minus its linear fit on PC1 is only ~1% of ECI's variance (`eci_vs_component
 - By benchmark (`q1_partial_corr_AJ.csv`): ECI residual is positively related to METR Time Horizons (0.71), Furniture Assembly (0.66), MATH level 5 (0.61), WeirdML v3 (0.57), OTIS AIME (0.52), FrontierMath T4 (0.48) and negatively to Fiction.LiveBench (-0.63), GeoBench (-0.62), VPCT (-0.58), SimpleQA (-0.56), Mystery Game Puzzles (-0.53), Balrog (-0.44).
 - Reading: ECI leans slightly toward competition math and METR, and slightly away from long-context, geolocation, vision, factual-recall and puzzle benchmarks. The size is small: ECI and PC1 are almost the same quantity.
 
+## 5. Alternative loss functions (see METHODOLOGY.md section 8)
+One score per model, with a free intercept and slope per benchmark, chosen under different losses and compared with the official ECI (`scripts/loss_comparison.py`, `outputs/loss_comparison/`).
+
+| Loss | Mean R^2 | Worst R^2 | Corr. with ECI | SD of score change (pts) | Max change (pts) | Held-out mean R^2 | Held-out worst R^2 |
+|---|---|---|---|---|---|---|---|
+| Official ECI | 0.80 | 0.23 (GeoBench) | 1.000 | 0 | 0 | n/a | n/a |
+| MSE, pooled cells | 0.80 | 0.25 | 0.997 | 1.1 | 5.3 | **0.74** | **0.17** |
+| MSE, benchmark average | 0.82 | 0.28 | 0.990 | 2.0 | 6.7 | 0.70 | 0.14 |
+| Absolute-value (MAE), benchmark average | 0.81 | 0.23 | 0.992 | 1.8 | 8.2 | 0.65 | -0.27 (Aider polyglot) |
+| Worst benchmark (p = 8) | 0.77 | 0.67 | 0.945 | 4.6 | 19.6 | 0.61 | -0.01 |
+| Worst benchmark (p = 64, about minimax) | 0.74 | 0.71 | 0.928 | 5.3 | 22.1 | 0.58 | -0.03 (MirrorCode) |
+
+- The mean ECI 95% half-width is 2.5 points, so MSE and MAE solutions reproduce ECI within its own uncertainty. Pooled MSE is closest and has the best held-out fit, consistent with ECI being roughly a least-squares fit.
+- The worst-benchmark loss raises the worst R^2 from 0.23 to 0.71 (GeoBench) by flattening fit across benchmarks, and boosts models that do well on GeoBench, MirrorCode, Fiction.LiveBench, VPCT and Mystery Game Puzzles at the expense of METR, ARC-AGI, FrontierMath T4 and AIME. But it is worse than the average losses on held-out cells, both on average and in the worst case. The worst-fit benchmarks have only 25-44 models, and the models that move most have few scores.
+- **Why these may not beat the current ECI** is spelled out in METHODOLOGY.md section 11: this is an approximation of ECI (logit-linear, 29-benchmark subset, no priors or anchors); there is no external ground truth for "better"; minimax is fragile in sparse data; and the average-loss differences are within ECI's uncertainty.
+
+## Figures
+One figure per claim in `outputs/figures/` (`fig01` to `fig16`); the claim-to-figure map is METHODOLOGY.md section 9.
+
 ## Caveats
 - Confidence intervals treat models as independent and ignore uncertainty in the components. Models from the same family are correlated, so true uncertainty is wider.
 - "In-sample" figures are optimistic for higher-rank fits. Held-out R^2 is the more reliable comparison, but it is itself noisy given the sparsity.

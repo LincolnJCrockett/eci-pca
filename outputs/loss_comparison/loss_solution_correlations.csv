@@ -1,0 +1,8 @@
+,official ECI,MSE (cells),MSE (benchmark avg),MAE (benchmark avg),worst-benchmark p=1,worst-benchmark p=8,worst-benchmark p=64
+official ECI,1.0,0.9968,0.9899,0.9916,0.9899,0.9448,0.9276
+MSE (cells),0.9968,1.0,0.9908,0.9909,0.9909,0.9496,0.9332
+MSE (benchmark avg),0.9899,0.9908,1.0,0.9952,1.0,0.9696,0.9545
+MAE (benchmark avg),0.9916,0.9909,0.9952,1.0,0.9952,0.956,0.9397
+worst-benchmark p=1,0.9899,0.9909,1.0,0.9952,1.0,0.9696,0.9545
+worst-benchmark p=8,0.9448,0.9496,0.9696,0.956,0.9696,1.0,0.997
+worst-benchmark p=64,0.9276,0.9332,0.9545,0.9397,0.9545,0.997,1.0

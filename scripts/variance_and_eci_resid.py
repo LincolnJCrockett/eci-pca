@@ -105,6 +105,7 @@ for _ in range(100):
     for j in range(m): o = obs[:, j]; Rp[o, j] = rng.permutation(R0[o, j])
     nulls.append(pairwise_eigs(Rp))
 n95 = np.percentile(nulls, 95, axis=0)
+pd.DataFrame({"eig_residual": wr[:10], "null95": n95[:10]}, index=range(1, 11)).round(4).to_csv(f"{out}/E_eigs.csv")
 print("\nECI-residual correlation matrix, eigenvalues vs shuffled-null 95th pct:")
 for i in range(6): print(f"  eig{i+1}: {wr[i]:.2f}  null {n95[i]:.2f} {'ABOVE' if wr[i] > n95[i] else ''}")
 
@@ -114,6 +115,7 @@ for _ in range(60):
     ib = rngb.choice(n, n); Xb = Mv[ib]
     if np.isnan(Xb).all(0).any(): continue
     Lb = fit(Xb, "E", 3, base_ov=logistic_on_eci(Xb, eci[ib], floor))["load"]; st.append(np.abs(LE.T @ Lb).max(1))
+pd.DataFrame({"mean_best_cos": np.mean(st, 0), "p10_best_cos": np.percentile(st, 10, 0)}, index=["E1", "E2", "E3"]).round(4).to_csv(f"{out}/E_stability.csv")
 print("bootstrap stability of E1..E3 (mean best-match |cosine|):", np.round(np.mean(st, 0), 2), " 10th pct:", np.round(np.percentile(st, 10, 0), 2))
 fD = fit(Xv, "D", 3, base_ov=fit(Xv, "A", 1)["pred"]); fDJ = fit(Xv, "DJ", 3, base_ov=fit(Xv, "AJ", 1)["pred"])
 for nm, f_ in (("D (PCA rank-1 with fixed means removed)", fD), ("DJ (PCA rank-1 with joint intercepts removed)", fDJ)):
