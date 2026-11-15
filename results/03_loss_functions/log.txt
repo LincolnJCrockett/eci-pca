@@ -19,6 +19,16 @@ Qwen 3.8 27B                  -21.3
 Gemma 4 31B IT                -17.2
 Qwen3.6 27B                   -15.3
 
+OVER TIME (frontier = models that set a new record at their release date)
+                        n_frontier_models  jaccard_with_official_frontier  frontier_slope_points_per_year  frontier_slope_models_8plus_scores  all_models_slope_points_per_year  corr_of_change_with_release_date latest_frontier_model
+solution                                                                                                                                                                                                                               
+Official ECI                           25                           1.000                          16.325                              17.900                            15.356                               NaN      Claude Fable 5.2
+MSE (cells)                            24                           0.885                          16.523                              17.754                            15.383                             0.020      Claude Fable 5.2
+MSE (benchmark avg)                    24                           0.750                          16.215                              18.336                            15.020                            -0.142      Claude Fable 5.2
+MAE (benchmark avg)                    24                           0.885                          16.420                              18.262                            15.080                            -0.128      Claude Fable 5.2
+Worst benchmark (p=8)                  21                           0.484                          14.339                              17.799                            13.869                            -0.268      Claude Fable 5.2
+Worst benchmark (p=64)                 16                           0.281                          13.613                              17.689                            13.540                            -0.285      Claude Fable 5.2
+
 HELD-OUT (benchmarks with >= 8 test cells)
                         mean_R2  worst_R2 worst_benchmark  mean_abs_error_in_sd_units
 solution                                                                             

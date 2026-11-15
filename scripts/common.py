@@ -28,7 +28,8 @@ def load(ex, min_b=25, min_obs_model=4, legacy_overlap=7):
     X = np.log(Mc / (1 - Mc))
     half = ((E["eci_ci_high"] - E["eci_ci_low"]) / 2).reindex(M.index)
     return SimpleNamespace(M=M, X=X, Xv=X.to_numpy(float), obs=~X.isna().to_numpy(), bench=list(M.columns),
-                           eci=E["eci"].reindex(M.index).to_numpy(float), eci_halfwidth=float(half.mean()), meta=meta, raw=d)
+                           eci=E["eci"].reindex(M.index).to_numpy(float), eci_halfwidth=float(half.mean()), meta=meta, raw=d,
+                           dates=pd.to_datetime(E["date"].reindex(M.index)))
 
 
 def corr(a, b):

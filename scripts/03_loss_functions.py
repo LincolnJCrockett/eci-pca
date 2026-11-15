@@ -37,6 +37,23 @@ T.round(4).to_csv(f"{out}/loss_summary.csv"); pd.DataFrame(R2, index=bench).roun
 pd.DataFrame([summarize(f"p={p}", path[p])[2] for p in PS]).set_index("solution").round(4).to_csv(f"{out}/worst_benchmark_path.csv")
 print(f"largest changes (points), worst benchmark p=64:\n{pd.concat([pd.Series(SC['Worst benchmark (p=64)'], index=D.M.index).nlargest(3), pd.Series(SC['Worst benchmark (p=64)'], index=D.M.index).nsmallest(3)]).round(1).to_string()}")
 
+# ---- scores over time: frontier (running maximum by release date) and date trend for each measure ----
+yrs = ((D.dates - D.dates.min()).dt.days / 365.25).to_numpy(); order = np.argsort(D.dates.to_numpy(), kind="stable"); fr_rows = []; official_set = None
+enough = obs.sum(1) >= 8                         # robustness: frontier among models with at least 8 scores (few-score models move most)
+for k in sol:
+    score = eci + SC[k]; best = -np.inf; rec = []
+    for i in order:
+        if score[i] > best: best = score[i]; rec.append(i)
+    best8, rec8 = -np.inf, []
+    for i in order:
+        if enough[i] and score[i] > best8: best8 = score[i]; rec8.append(i)
+    names_f = [D.M.index[i] for i in rec]; official_set = set(names_f) if k == "Official ECI" else official_set
+    fr_rows.append(dict(solution=k, n_frontier_models=len(rec), jaccard_with_official_frontier=len(set(names_f) & official_set) / len(set(names_f) | official_set),
+                        frontier_slope_points_per_year=np.polyfit(yrs[rec], score[rec], 1)[0], frontier_slope_models_8plus_scores=np.polyfit(yrs[rec8], score[rec8], 1)[0], all_models_slope_points_per_year=np.polyfit(yrs, score, 1)[0],
+                        corr_of_change_with_release_date=np.corrcoef(yrs, SC[k])[0, 1] if k != "Official ECI" else np.nan, latest_frontier_model=names_f[-1], frontier_models="; ".join(names_f)))
+FR = pd.DataFrame(fr_rows).set_index("solution"); FR.drop(columns="frontier_models").round(3).to_csv(f"{out}/loss_over_time.csv"); FR[["frontier_models"]].to_csv(f"{out}/loss_frontier_models.csv")
+print("\nOVER TIME (frontier = models that set a new record at their release date)"); print(FR.drop(columns="frontier_models").round(3).to_string())
+
 # ---- held-out: refit on 80% of cells, predict the rest with an OLS line per benchmark ----
 rng = np.random.default_rng(0); idxs = np.argwhere(obs); folds = np.array_split(idxs[rng.permutation(len(idxs))], 5)
 names = ["MSE (cells)", "MSE (benchmark avg)", "MAE (benchmark avg)", "Worst benchmark (p=8)", "Worst benchmark (p=64)"]

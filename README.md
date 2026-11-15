@@ -45,6 +45,14 @@ The ECI is built to fit all benchmarks on average. If we instead choose the one-
 ![](results/figures/fig10_loss_score_changes.png)
 ![](results/figures/fig11_loss_held_out.png)
 
+**Over time.** Like Epoch's chart of ECI against release date, `fig12` plots each measure against release date with its frontier (the models that set a record when they were released).
+- The average losses track the official frontier: +16.2 to +16.5 points per year against +16.3 for the official ECI, with 75–88% of the same record-setting models.
+- The worst-benchmark loss gives a flatter frontier (+13.6 per year at p = 64) and changes who sets records (28% overlap). But that comes from a few early models with few scores, such as GPT-4, Gemini 1.5 Flash and Qwen2.5-72B (6–9 scores each, boosted by 10–22 points). Among models with at least 8 scores, the frontier slope is the same under every loss (17.7–18.3 points per year).
+- The newest frontier model (Claude Fable 5.2) is the same under every loss.
+
+![](results/figures/fig12_scores_over_time.png)
+![](results/figures/fig13_frontier_over_time.png)
+
 ## Main caveats
 (Full list in [`METHODOLOGY.md` §10](METHODOLOGY.md#10-caveats).)
 - The data are sparse and not random; conclusions concern a 29-benchmark subset, and the ECI also uses other benchmarks.
@@ -66,6 +74,6 @@ python -I scripts/04_make_figures.py     data/extracted results
 ## Files
 - `METHODOLOGY.md`: how every number is computed, with equations, scripts and caveats.
 - `scripts/`: `common.py` (shared code), `download_data.py`, and `01_` to `04_` for the four steps and figures.
-- `results/`: saved tables, logs, and `figures/` (`fig01`–`fig11`).
+- `results/`: saved tables, logs, and `figures/` (`fig01`–`fig13`).
 
 Data: Epoch AI, "Capabilities & benchmarking", https://epoch.ai/benchmarks (CC-BY 4.0). Not redistributed here; the download script fetches it.

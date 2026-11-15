@@ -1,7 +1,7 @@
 """Figures (one per claim). Reads the CSVs written by scripts 01-03.
 Usage: python -I scripts/04_make_figures.py <extracted_dir> <results_dir>      -> <results_dir>/figures/
 """
-import sys, os, textwrap
+import sys, os, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np, pandas as pd
 import matplotlib
@@ -18,7 +18,14 @@ SEQ = LinearSegmentedColormap.from_list("seq", ["#f0efec", "#256abf"])
 plt.rcParams.update({"axes.facecolor": SURF, "figure.facecolor": SURF, "axes.edgecolor": GRID, "axes.labelcolor": INK, "text.color": INK, "xtick.color": MUTED, "ytick.color": MUTED,
                      "axes.grid": True, "grid.color": GRID, "grid.linewidth": .6, "axes.spines.top": False, "axes.spines.right": False, "axes.titlesize": 11, "axes.titleweight": "bold", "axes.titlelocation": "left"})
 W = lambda s, w=60: textwrap.fill(s, w)
-def save(fig, name): fig.tight_layout(); fig.savefig(f"{fd}/{name}.png", dpi=150); plt.close(fig); print("wrote", name)
+def save(fig, name):
+    fig.tight_layout()
+    for attempt in range(6):                      # retry: Windows occasionally locks the file for a moment (OSError 22)
+        try: fig.savefig(f"{fd}/{name}.png", dpi=150); break
+        except OSError:
+            if attempt == 5: raise
+            time.sleep(1)
+    plt.close(fig); print("wrote", name)
 R1 = lambda f: pd.read_csv(f"{res}/01_pc1_vs_eci/{f}", index_col=0); R2 = lambda f: pd.read_csv(f"{res}/02_eci_residual/{f}", index_col=0); R3 = lambda f: pd.read_csv(f"{res}/03_loss_functions/{f}", index_col=0)
 D = load(ex); eci = D.eci
 
@@ -91,4 +98,28 @@ for i in np.argsort(-np.abs(SC["Worst benchmark (p=64)"].to_numpy()))[:4]: ax.an
 ax.axhline(0, color=MUTED, lw=.8); ax.set(xlabel="Official ECI", ylabel="Change in score vs official ECI (points)", title=W("MSE moves scores within ECI's own uncertainty; the worst-benchmark loss moves some by 20+", 60)); ax.legend(frameon=False, fontsize=8); save(fig, "fig10_loss_score_changes")
 fig, ax = plt.subplots(figsize=(9, 4.8)); x = np.arange(len(HO)); ax.bar(x - .2, HO.mean_R2, .38, color=BLUE, edgecolor=SURF, linewidth=2, label="mean over benchmarks"); ax.bar(x + .2, HO.worst_R2, .38, color=ORANGE, edgecolor=SURF, linewidth=2, label="worst benchmark")
 ax.axhline(0, color=MUTED, lw=.8); ax.set_xticks(x); ax.set_xticklabels([textwrap.fill(s, 14) for s in HO.index], fontsize=8); ax.set(ylabel="Held-out R-squared", title=W("Out of sample, the worst-benchmark loss is worse on average and in the worst case", 70)); ax.legend(frameon=False, fontsize=9); save(fig, "fig11_loss_held_out")
+
+# ---- fig12-13: scores over release date (like Epoch's ECI chart), one panel per loss ----
+import matplotlib.dates as mdates
+OT = R3("loss_over_time.csv"); dates = D.dates.to_numpy(); order = np.argsort(dates, kind="stable")
+COLS = {"Official ECI": INK, "MSE (cells)": BLUE, "MSE (benchmark avg)": AQUA, "MAE (benchmark avg)": "#eda100", "Worst benchmark (p=8)": MAGENTA, "Worst benchmark (p=64)": ORANGE}
+score = {k: eci + SC[k].to_numpy() for k in COLS}
+def frontier(sc):
+    best, rec = -np.inf, []
+    for i in order:
+        if sc[i] > best: best = sc[i]; rec.append(i)
+    return np.array(rec)
+fig, axs = plt.subplots(2, 3, figsize=(15, 8.2), sharex=True, sharey=True)
+for a, k in zip(axs.ravel(), COLS):
+    if k != "Official ECI": a.scatter(dates, eci, s=10, color="#c3c2b7", label="official ECI")
+    a.scatter(dates, score[k], s=14, color=COLS[k] if k != "Official ECI" else BLUE, alpha=.85, label=k)
+    rec = frontier(score[k]); a.step(dates[rec], score[k][rec], where="post", color=INK, lw=1.4, label="frontier"); a.scatter(dates[rec], score[k][rec], s=22, color=INK, zorder=3)
+    a.set_title(f"{k}  |  frontier +{OT.frontier_slope_points_per_year[k]:.1f} pts/yr (+{OT.frontier_slope_models_8plus_scores[k]:.1f} if 8+ scores)", fontsize=9); a.xaxis.set_major_locator(mdates.YearLocator()); a.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+    if k != "Official ECI": a.legend(frameon=False, fontsize=7, loc="upper left")
+for a in axs[:, 0]: a.set_ylabel("Score (ECI points)")
+fig.suptitle("Scores over release date under each loss; black = frontier (models that set a record at release)", x=.01, ha="left", fontweight="bold", fontsize=11); save(fig, "fig12_scores_over_time")
+fig, ax = plt.subplots(figsize=(9.5, 5.5))
+for k, c in COLS.items():
+    rec = frontier(score[k]); ax.step(dates[rec], score[k][rec], where="post", color=c, lw=2.2 if k in ("Official ECI", "Worst benchmark (p=64)") else 1.5, label=f"{k} (+{OT.frontier_slope_points_per_year[k]:.1f} pts/yr; +{OT.frontier_slope_models_8plus_scores[k]:.1f} using models with 8+ scores)")
+ax.xaxis.set_major_locator(mdates.YearLocator()); ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y")); ax.set(ylabel="Frontier score (ECI points)", title=W("Average losses track the official frontier; the worst-benchmark loss lifts early records, but only via models with few scores", 70)); ax.legend(frameon=False, fontsize=8, loc="upper left"); save(fig, "fig13_frontier_over_time")
 print("done")

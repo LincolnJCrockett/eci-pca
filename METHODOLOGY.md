@@ -173,7 +173,9 @@ $p=1$ is the benchmark-averaged MSE exactly (the script checks this: the two sol
 - *Rank:* $|\operatorname{rank}(\theta_m)-\operatorname{rank}(\text{ECI}_m)|$ for each model (mean shown as % of the 191 models).
 - *Points:* the score change in ECI points after mapping $\theta$ onto the ECI scale by matching mean and SD, $\widehat{\text{ECI}}_m=\overline{\text{ECI}}+\mathrm{sd}(\text{ECI})\,\theta_m$. We compare against the typical ECI 95% half-width, 2.5 points. The matching is a convention (§10).
 
-**Script.** `03_loss_functions.py`. Outputs: `loss_summary.csv`, `worst_benchmark_path.csv`, `loss_benchmark_r2.csv`, `loss_score_change_points.csv`, `loss_held_out.csv`.
+**Scores over release date** (the counterpart of Epoch's ECI-versus-date chart). Each model's release date is the `date` column of `eci_scores.csv`. A measure's score in ECI points is the official ECI plus its change from the previous paragraph. The *frontier* of a measure is the set of models that scored higher than every model released before them (a running maximum by release date); its *slope* is the least-squares line through those record-setting points, in points per year. We also report (a) the share of record-setting models in common with the official ECI's frontier (intersection over union), (b) the correlation of each model's score change with its release date, and (c) as a robustness check, the frontier slope using only models with at least 8 scores, because models with few scores are the ones whose scores move most.
+
+**Script.** `03_loss_functions.py`. Outputs: `loss_summary.csv`, `worst_benchmark_path.csv`, `loss_benchmark_r2.csv`, `loss_score_change_points.csv`, `loss_held_out.csv`, `loss_over_time.csv`, `loss_frontier_models.csv`.
 
 ---
 
@@ -208,6 +210,8 @@ All figures are in `results/figures/`, drawn by `04_make_figures.py` from the sa
 | `fig09_loss_per_benchmark` | Worst-benchmark loss flattens fit across benchmarks | 4 |
 | `fig10_loss_score_changes` | MSE moves scores within the ECI's own uncertainty; worst-benchmark loss moves some by 20+ points | 4 |
 | `fig11_loss_held_out` | Out of sample the worst-benchmark loss is worse on average and in the worst case | 4 |
+| `fig12_scores_over_time` | Each measure against release date, with its frontier (Epoch-style chart) | 4 |
+| `fig13_frontier_over_time` | Average losses track the official frontier; the worst-benchmark loss lifts early records, but only through models with few scores | 4 |
 
 ---
 
@@ -250,4 +254,5 @@ Each script prints its main numbers (the logs saved in the results folders are t
 8. **Scale and interpretation.** Mapping $\theta$ to "ECI points" by matching mean and SD ignores the ECI's anchoring, so point changes are indicative. The ECI's interpretability (benchmark difficulty on the same scale as model capability) is not reproduced.
 9. **Average-type losses sit inside the ECI's own uncertainty.** MSE moves scores by about 1 point (SD) against a 2.5-point half-width. Only the worst-benchmark loss moves scores well outside it. I did not bootstrap uncertainty for the alternative-loss scores.
 10. **Local optima.** Worst-benchmark and MAE objectives are non-smooth or non-convex; all solutions start at the ECI, so other optima were not explored.
-11. **Evaluation scope.** The held-out comparison excludes the official ECI (it saw those cells), covers benchmarks with at least 8 test cells, and uses a single 5-fold split.
+11. **Frontier comparisons are fragile to a few models.** The flatter frontier under the worst-benchmark loss (+13.6 vs +16.3 points per year) comes from early models with 6–9 scores that move by 10–22 points; restricted to models with at least 8 scores the slopes agree (17.7–18.3). Slopes are also in "points" defined by the mean-and-SD mapping above, so they are indicative.
+12. **Evaluation scope.** The held-out comparison excludes the official ECI (it saw those cells), covers benchmarks with at least 8 test cells, and uses a single 5-fold split.
