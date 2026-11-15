@@ -1,0 +1,3 @@
+spec,pearson_r,ci_low,ci_high,spearman,r_squared
+A,0.9683,0.958,0.9761,0.9594,0.9375
+AJ,0.9951,0.9935,0.9964,0.9951,0.9903

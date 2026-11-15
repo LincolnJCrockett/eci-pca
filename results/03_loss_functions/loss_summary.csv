@@ -1,0 +1,7 @@
+solution,mean_R2,worst_R2,worst_benchmark,corr_with_ECI,sd_change_points,max_abs_change_points,mean_rank_shift_pct,max_rank_shift
+Official ECI,0.8003,0.2251,GeoBench,1.0,0.0,0.0,0.0,0
+MSE (cells),0.8039,0.2481,GeoBench,0.9968,1.0995,5.3028,1.6447,26
+MSE (benchmark avg),0.8243,0.2779,GeoBench,0.9899,1.9628,6.6761,2.7658,27
+MAE (benchmark avg),0.8112,0.233,GeoBench,0.9916,1.7872,8.2405,2.415,24
+Worst benchmark (p=8),0.7669,0.668,GeoBench,0.9448,4.5875,19.569,6.6117,91
+Worst benchmark (p=64),0.7388,0.709,GeoBench,0.9276,5.2568,22.1085,7.6643,97

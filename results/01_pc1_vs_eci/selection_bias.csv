@@ -1,0 +1,30 @@
+,observed_mean,model_implied_mean_all_models,mean_std_ECI_of_tested_models,bias
+APEX-Agents,0.047,-1.221,1.013,1.268
+ARC-AGI,1.068,-0.382,0.532,1.449
+ARC-AGI-2,-0.979,-2.482,0.515,1.503
+Aider polyglot,-0.042,0.921,-0.412,-0.963
+Balrog,-0.686,-0.528,-0.285,-0.158
+Chess Puzzles,-1.003,-2.12,0.697,1.117
+DTBench,0.805,0.804,0.005,0.002
+EBR-bench,-0.823,-3.799,1.167,2.976
+Fiction.LiveBench,0.726,1.459,-0.341,-0.733
+FrontierCode,-0.59,-1.741,0.991,1.151
+FrontierMath-Tier-4-v2-Private,-0.551,-3.613,0.924,3.062
+FrontierMath-Tiers-1-3-v2-Private,0.437,-1.144,0.679,1.581
+Furniture Assembly,-1.872,-6.987,1.215,5.115
+GPQA diamond,1.04,1.105,-0.04,-0.065
+GSO-Bench,-1.509,-2.781,0.554,1.272
+GeoBench,0.935,0.895,0.061,0.04
+LMCA,-0.356,-0.576,0.238,0.22
+MATH level 5,0.757,2.979,-0.959,-2.222
+METR Time Horizons,0.272,0.423,-0.203,-0.151
+MirrorCode,-0.032,-2.929,1.158,2.897
+Mystery Game Puzzles,-1.791,-3.062,0.685,1.271
+OTIS Mock AIME 2024-2025,1.182,1.13,0.022,0.052
+ProofBench,-0.066,-3.241,0.864,3.175
+SimpleBench,-0.415,-0.95,0.351,0.535
+SimpleQA Verified,-0.311,-1.031,0.675,0.719
+Terminal Bench,-0.232,-0.856,0.319,0.623
+VPCT,-1.961,-1.872,-0.051,-0.089
+WeirdML,-0.165,-0.15,-0.015,-0.015
+WeirdML v3,-1.137,-3.555,1.246,2.418

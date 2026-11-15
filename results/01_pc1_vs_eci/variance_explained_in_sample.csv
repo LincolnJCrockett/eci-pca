@@ -1,0 +1,8 @@
+model,R2_in_sample_equal_weight,R2_in_sample_pooled
+"PCA rank 1, conventional (A)",0.6616,0.6886
+"PCA rank 2, conventional (A)",0.8657,0.8883
+"PCA rank 3, conventional (A)",0.9107,0.9148
+"PCA rank 1, joint intercepts (AJ)",0.84,0.8655
+"PCA rank 2, joint intercepts (AJ)",0.8968,0.8963
+"PCA rank 3, joint intercepts (AJ)",0.9228,0.9287
+official ECI as the single score,0.8337,0.8716

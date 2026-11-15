@@ -1,9 +1,0 @@
-,0
-benchmark means only,0.0
-FE additive (k=0 C),0.7564
-"ECI, per-benchmark linear",0.8716
-"ECI, per-benchmark quadratic",0.8871
-PCA rank-1 (A),0.6886
-PCA rank-2 (A),0.8883
-PCA rank-3 (A),0.9148
-PCA rank-4 (A),0.9371
