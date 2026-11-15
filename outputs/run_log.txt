@@ -1,0 +1,79 @@
+dropped superseded: ['FrontierMath-2025-02-28-Private', 'FrontierMath-Tier-4-2025-07-01-Private']
+median overlap per benchmark (lowest 14):
+ OpenBookQA            0.0
+ARC AI2               1.0
+GSM8K                 1.0
+BBH                   1.0
+HellaSwag             1.0
+TriviaQA              1.0
+Winogrande            1.0
+PIQA                  2.0
+MMLU                  6.0
+Aider polyglot        7.0
+Fiction.LiveBench     8.0
+Balrog                8.0
+Terminal Bench        9.0
+WeirdML v3           11.0
+legacy (poorly connected) benchmarks, analysed separately: ['ARC AI2', 'BBH', 'GSM8K', 'HellaSwag', 'MMLU', 'OpenBookQA', 'PIQA', 'TriviaQA', 'Winogrande']
+benchmark pairs with overlap < 12 : 180
+analysis matrix (198, 29) density 0.365
+[raw] CV MSE by k: {0: np.float64(0.986), 1: np.float64(0.439), 2: np.float64(0.255), 3: np.float64(0.329), 4: np.float64(0.394), 5: np.float64(0.442), 6: np.float64(0.424)} best k 2
+
+Pairwise-corr eigenvalue share: [0.501 0.157 0.071 0.052 0.041 0.036]
+Loading agreement pairwise vs EM (|corr|): {'PC1': np.float64(0.321), 'PC2': np.float64(0.946), 'PC3': np.float64(0.309)}
+ECI columns: ['Model', 'Display name', 'eci', 'eci_ci_low', 'eci_ci_high', 'date', 'Organization', 'Country (of organization)']
+PC1 vs ECI corr: 0.805 n = 198
+[logit] CV MSE by k: {0: np.float64(0.986), 1: np.float64(0.423), 2: np.float64(0.283), 3: np.float64(0.384), 4: np.float64(0.433), 5: np.float64(0.477), 6: np.float64(0.532)} best k 2
+logit PC1/PC2 agreement with raw (pairwise): {'PC1': np.float64(0.992), 'PC2': np.float64(0.992), 'PC3': np.float64(0.98)}
+
+Top/bottom loadings per component (pairwise):
+PC1 NEG: ['Balrog', 'Fiction.LiveBench', 'Aider polyglot', 'GeoBench', 'MATH level 5'] 
+    POS: ['ARC-AGI-2', 'SimpleBench', 'ARC-AGI', 'DTBench', 'LMCA']
+PC2 NEG: ['Furniture Assembly', 'EBR-bench', 'ProofBench', 'WeirdML v3', 'MirrorCode'] 
+    POS: ['VPCT', 'Fiction.LiveBench', 'METR Time Horizons', 'Aider polyglot', 'MATH level 5']
+PC3 NEG: ['Terminal Bench', 'GSO-Bench', 'VPCT', 'FrontierMath-Tiers-1-3-v2-Private', 'Mystery Game Puzzles'] 
+    POS: ['WeirdML v3', 'Aider polyglot', 'FrontierCode', 'Balrog', 'APEX-Agents']
+
+PC1 loadings sorted:
+ benchmark
+Balrog                               0.09
+Fiction.LiveBench                    0.10
+Aider polyglot                       0.11
+GeoBench                             0.11
+MATH level 5                         0.13
+VPCT                                 0.13
+METR Time Horizons                   0.13
+MirrorCode                           0.14
+Terminal Bench                       0.15
+WeirdML v3                           0.16
+GSO-Bench                            0.17
+APEX-Agents                          0.17
+FrontierCode                         0.17
+Furniture Assembly                   0.18
+SimpleQA Verified                    0.19
+EBR-bench                            0.19
+Chess Puzzles                        0.20
+ProofBench                           0.20
+FrontierMath-Tier-4-v2-Private       0.20
+Mystery Game Puzzles                 0.21
+GPQA diamond                         0.22
+FrontierMath-Tiers-1-3-v2-Private    0.22
+WeirdML                              0.22
+OTIS Mock AIME 2024-2025             0.22
+ARC-AGI-2                            0.24
+SimpleBench                          0.24
+ARC-AGI                              0.24
+DTBench                              0.24
+LMCA                                 0.25
+
+LEGACY benchmarks (71, 9) eigen share: [0.667 0.176 0.087]
+benchmark
+TriviaQA      0.22
+OpenBookQA    0.31
+HellaSwag     0.32
+GSM8K         0.32
+ARC AI2       0.35
+Winogrande    0.35
+PIQA          0.36
+BBH           0.36
+MMLU          0.39

@@ -1,0 +1,37 @@
+cosine pw vs EM: {'PC1': 0.941, 'PC2': 0.946}
+n matched EDI: 29
+PC1 vs EDI (difficulty) r=0.23 | vs release date r=0.05 | vs slope r=0.21
+PC2 vs EDI (difficulty) r=-0.81 | vs release date r=-0.59 | vs slope r=-0.43
+                                    PC1   PC2     edi release_date
+benchmark                                                         
+Furniture Assembly                 0.18 -0.26  165.91   2026-09-23
+EBR-bench                          0.19 -0.26  163.97   2026-07-01
+ProofBench                         0.20 -0.22  156.46   2026-01-30
+WeirdML v3                         0.16 -0.22  168.12   2026-09-18
+MirrorCode                         0.14 -0.22  159.78   2026-06-26
+FrontierMath-Tier-4-v2-Private     0.20 -0.22  158.71   2026-06-12
+FrontierCode                       0.17 -0.20  163.85   2026-06-08
+Mystery Game Puzzles               0.21 -0.19  164.56   2026-07-30
+APEX-Agents                        0.17 -0.19  156.98   2026-01-21
+Chess Puzzles                      0.20 -0.10  161.70   2025-12-10
+FrontierMath-Tiers-1-3-v2-Private  0.22 -0.06  150.71   2026-06-12
+GSO-Bench                          0.17 -0.05  159.81   2025-05-29
+SimpleQA Verified                  0.19 -0.02  157.03   2025-09-09
+ARC-AGI-2                          0.24  0.04  154.63   2025-03-24
+LMCA                               0.25  0.04  152.04   2026-08-12
+SimpleBench                        0.24  0.07  152.22   2024-10-31
+Terminal Bench                     0.15  0.08  149.42   2025-05-19
+WeirdML                            0.22  0.11  145.50   2025-01-16
+GeoBench                           0.11  0.12  118.90   2025-03-01
+ARC-AGI                            0.24  0.12  145.50   2019-11-05
+DTBench                            0.24  0.13  135.68   2026-08-12
+OTIS Mock AIME 2024-2025           0.22  0.14  137.16   2024-12-19
+Balrog                             0.09  0.18  154.66   2024-11-20
+GPQA diamond                       0.22  0.18  133.91   2023-11-20
+VPCT                               0.13  0.22  153.15   2025-01-30
+Fiction.LiveBench                  0.10  0.27  133.37   2025-02-21
+METR Time Horizons                 0.13  0.28  136.03   2025-03-19
+Aider polyglot                     0.11  0.30  138.13   2024-12-21
+MATH level 5                       0.13  0.31  126.03   2021-03-05
+model PC1 vs ECI r=0.80, PC2 vs ECI r=0.61, PC2 vs model date r=0.65, PC1 vs date r=0.70
+PC2 resid vs date r=0.11

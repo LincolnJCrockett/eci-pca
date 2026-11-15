@@ -1,0 +1,30 @@
+benchmark,PC1,PC2,PC3,n_models
+APEX-Agents,0.171,-0.191,0.273,58
+ARC-AGI,0.237,0.122,0.056,91
+ARC-AGI-2,0.236,0.041,-0.028,90
+Aider polyglot,0.108,0.3,0.216,44
+Balrog,0.094,0.177,0.25,29
+Chess Puzzles,0.201,-0.102,-0.161,87
+DTBench,0.24,0.134,0.099,148
+EBR-bench,0.192,-0.256,0.1,31
+Fiction.LiveBench,0.104,0.267,0.126,50
+FrontierCode,0.174,-0.197,0.244,42
+FrontierMath-Tier-4-v2-Private,0.204,-0.217,-0.117,72
+FrontierMath-Tiers-1-3-v2-Private,0.218,-0.057,-0.184,90
+Furniture Assembly,0.181,-0.262,0.084,39
+GPQA diamond,0.217,0.184,0.109,176
+GSO-Bench,0.171,-0.054,-0.371,28
+GeoBench,0.113,0.118,-0.153,44
+LMCA,0.248,0.045,0.086,126
+MATH level 5,0.132,0.306,0.119,75
+METR Time Horizons,0.133,0.284,-0.096,33
+MirrorCode,0.136,-0.218,0.144,39
+Mystery Game Puzzles,0.207,-0.192,-0.174,82
+OTIS Mock AIME 2024-2025,0.22,0.143,0.129,169
+ProofBench,0.201,-0.223,-0.084,71
+SimpleBench,0.236,0.069,0.115,95
+SimpleQA Verified,0.186,-0.015,-0.169,88
+Terminal Bench,0.152,0.079,-0.42,32
+VPCT,0.132,0.221,-0.309,26
+WeirdML,0.219,0.109,-0.022,116
+WeirdML v3,0.16,-0.221,0.211,26

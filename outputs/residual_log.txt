@@ -1,0 +1,47 @@
+logistic-on-ECI R^2 per benchmark:
+ GeoBench                             0.19
+MirrorCode                           0.50
+Fiction.LiveBench                    0.57
+VPCT                                 0.59
+SimpleQA Verified                    0.62
+Furniture Assembly                   0.72
+APEX-Agents                          0.74
+Chess Puzzles                        0.76
+FrontierCode                         0.77
+SimpleBench                          0.81
+Aider polyglot                       0.83
+Balrog                               0.87
+DTBench                              0.87
+Mystery Game Puzzles                 0.88
+WeirdML                              0.89
+ProofBench                           0.90
+FrontierMath-Tier-4-v2-Private       0.92
+EBR-bench                            0.93
+Terminal Bench                       0.93
+MATH level 5                         0.94
+GPQA diamond                         0.94
+GSO-Bench                            0.95
+ARC-AGI-2                            0.95
+FrontierMath-Tiers-1-3-v2-Private    0.95
+LMCA                                 0.95
+WeirdML v3                           0.95
+OTIS Mock AIME 2024-2025             0.96
+METR Time Horizons                   0.96
+ARC-AGI                              0.98
+
+Residual PCA eigenvalues (real vs null 95th pct):
+  PC1: 4.07  null95 3.10  <-- above null
+  PC2: 3.70  null95 2.71  <-- above null
+  PC3: 2.94  null95 2.43  <-- above null
+  PC4: 2.73  null95 2.22  <-- above null
+  PC5: 2.09  null95 2.07  <-- above null
+  PC6: 1.68  null95 1.93  
+
+R1  (-): GSO-Bench -0.29, METR Time Horizons -0.25, ARC-AGI-2 -0.24, SimpleBench -0.22, ARC-AGI -0.20, LMCA -0.17 
+     (+): Chess Puzzles 0.21, GeoBench 0.24, FrontierMath-Tier-4-v2-Private 0.27, OTIS Mock AIME 2024-2025 0.28, VPCT 0.29, FrontierMath-Tiers-1-3-v2-Private 0.39
+
+R2  (-): GSO-Bench -0.28, ProofBench -0.28, MirrorCode -0.20, Furniture Assembly -0.18, MATH level 5 -0.16, FrontierMath-Tier-4-v2-Private -0.10 
+     (+): VPCT 0.24, Chess Puzzles 0.25, DTBench 0.28, SimpleBench 0.32, Mystery Game Puzzles 0.32, SimpleQA Verified 0.40
+
+R3  (-): ARC-AGI -0.34, ARC-AGI-2 -0.33, OTIS Mock AIME 2024-2025 -0.28, MATH level 5 -0.23, Chess Puzzles -0.12, GPQA diamond -0.10 
+     (+): WeirdML 0.22, Fiction.LiveBench 0.24, Furniture Assembly 0.24, ProofBench 0.26, Aider polyglot 0.34, LMCA 0.36
