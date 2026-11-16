@@ -1,0 +1,8 @@
+,value
+developers_with_5plus_models,10.0
+share_E1_explained_by_developer,0.121
+permutation_p,0.0075
+share_E1_explained_by_anthropic_vs_rest,0.0264
+anthropic_minus_rest_in_SD,0.4727
+prob_claude_above_other,0.7494
+cosine_E1_vs_ordinary_PC2,0.7855

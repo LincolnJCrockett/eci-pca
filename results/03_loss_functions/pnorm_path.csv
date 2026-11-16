@@ -1,0 +1,8 @@
+solution,mean_R2,worst_R2,worst_benchmark,corr_with_ECI,sd_change_points,max_abs_change_points,mean_rank_shift_pct,max_rank_shift
+p=1,0.8449,0.2663,GeoBench,0.9954,1.32,4.588,1.9215,22
+p=2,0.8361,0.4069,GeoBench,0.9861,2.3004,7.7453,3.2866,31
+p=4,0.8074,0.5908,GeoBench,0.9657,3.6145,15.9947,5.1424,74
+p=8,0.784,0.6621,GeoBench,0.9494,4.3936,19.3893,6.4088,88
+p=16,0.768,0.6903,GeoBench,0.9386,4.8406,20.94,7.0064,93
+p=32,0.758,0.7027,GeoBench,0.9322,5.085,21.7114,7.434,94
+p=64,0.7517,0.7084,GeoBench,0.9284,5.2244,22.0908,7.6588,96

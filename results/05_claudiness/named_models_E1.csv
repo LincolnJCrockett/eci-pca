@@ -1,0 +1,18 @@
+model,burnham_group,E1,E1_percentile
+Claude 3.5 Sonnet (October 2024),most,4.086,84.817
+Claude 3.5 Sonnet,most,2.425,76.963
+Claude 3.7 Sonnet,most,2.034,74.869
+Claude Sonnet 4,most,6.035,90.052
+Claude Opus 4,most,3.462,81.152
+GPT-5,least,-2.096,22.513
+GPT-4o mini,least,-1.941,23.56
+GPT-4o (Nov 2024),least,-2.723,16.754
+GPT-4o (Aug 2024),least,-3.551,12.565
+o4-mini,least,-0.735,38.743
+Claude Opus 4.1,(other Claude Opus),6.412,91.099
+Claude Opus 4.5,(other Claude Opus),3.581,83.246
+Claude Opus 4.6,(other Claude Opus),0.608,56.021
+Claude Opus 4.7,(other Claude Opus),-0.527,43.455
+Claude Opus 4.8,(other Claude Opus),-0.07,49.215
+Claude Opus 5,(other Claude Opus),2.377,76.44
+Claude Opus 5.5,(other Claude Opus),1.514,68.063

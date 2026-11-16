@@ -2,63 +2,70 @@
 
 The [Epoch Capabilities Index (ECI)](https://epoch.ai/eci) combines scores from many AI benchmarks into one number per model. This project asks what that aggregation keeps and what it loses, using the benchmark data Epoch publishes. How each number is computed is in [`METHODOLOGY.md`](METHODOLOGY.md).
 
-**Sample:** 191 models × 29 benchmarks (2,078 scores; 37.5% of cells observed), logit scores.
+**Sample:** 191 models × 29 benchmarks (2,078 scores; 37.5% of cells observed).
+
+**One approach throughout.** Every step uses the same scale, model and weighting. Scores are on the logit scale, where the ECI's S-curve becomes a straight line. Each benchmark gets its own intercept and slope in the score(s). Every observed score counts once after each benchmark is scaled to unit spread, so benchmarks scored on more models count more; this is what PCA with missing data does.
 
 ## The argument
 
 ### 1. Aggregating many benchmarks into one number must lose some variation
-The ECI, as a single score, explains **83%** of the variation within benchmarks (benchmarks weighted equally; 87% pooled). So **13–17% is lost**, and the loss is uneven. It explains 93–96% of METR Time Horizons, FrontierMath Tiers 1–3, GPQA, ARC-AGI and AIME, but only **23% of GeoBench**, 49% of MirrorCode, 55% of VPCT, 57% of Fiction.LiveBench, 61% of Mystery Game Puzzles and 62% of SimpleQA.
+For each benchmark, fit the ECI's own S-curve (a straight line in the ECI on logit scores) and ask how much of the benchmark's variation across models it captures. Overall the ECI explains **83%** of the variation within benchmarks, so **17% is lost**, and the loss is uneven. It explains 93–96% of METR Time Horizons, FrontierMath Tiers 1–3, GPQA, ARC-AGI and AIME, but only **23% of GeoBench**, 49% of MirrorCode, 55% of VPCT, 57% of Fiction.LiveBench, 61% of Mystery Game Puzzles and 62% of SimpleQA. Some of these low values come partly from which models were tested (see caveats): GeoBench and SimpleQA were run on a wide range of models, but MirrorCode, Fiction.LiveBench and VPCT mostly on recent, strong ones.
 
 ![](results/figures/fig05_eci_by_benchmark.png)
 
 ### 2. The ECI is essentially the first principal component of the benchmarks
-Running PCA on the benchmarks (with benchmark intercepts estimated jointly with the factor, "AJ"), the first component correlates **r = 0.995** [0.994, 0.996] with the ECI. That one component explains **84%** of within-benchmark variation in-sample and **82%** on held-out cells. Out of sample, adding more components does not help. Conventional PCA (centering on observed benchmark means) understates this (r = 0.968, 66% in-sample, 60% held out) because the models tested on a benchmark are not representative: hard benchmarks were mostly run on strong models.
+PCA on the benchmarks (each benchmark's intercept estimated together with the components; see [`METHODOLOGY.md` §4.2](METHODOLOGY.md#42-two-ways-of-centering-conventional-a-and-joint-intercepts-aj)) gives a first component that correlates **r = 0.995** [0.994, 0.997] with the ECI. It explains **84.5%** of within-benchmark variation, against 83.4% for the ECI itself. The second component adds 5.4%, the third 2.7%, and each later one less. Points 1 and 2 confirm, on this subset, what Epoch has itself reported.[^epoch]
 
 ![](results/figures/fig02_pc1_vs_eci.png)
 ![](results/figures/fig03_variance_explained.png)
 
 ### 3. Remove what the ECI explains: what is left?
-After subtracting from each benchmark the line that the ECI explains, the leftover variation is largest for the benchmarks in point 1: GeoBench, MirrorCode, VPCT, Fiction.LiveBench, Mystery Game Puzzles, SimpleQA. These are the benchmarks the ECI undervalues, or that measure something other than what it measures (geolocation, long-context fiction, visual reasoning, factual recall).
+After subtracting from each benchmark the line that the ECI explains, the leftover variation is largest for the benchmarks in point 1: GeoBench, MirrorCode, VPCT, Fiction.LiveBench, Mystery Game Puzzles and SimpleQA. These are the benchmarks, and the abilities they test (for example geolocation, visual reasoning, long-context fiction and factual recall), that the ECI undervalues.
 
-Is there shared structure in the leftover? Only weakly. Four eigenvalues are above a shuffled null, but adding the components to the ECI prediction makes held-out prediction **worse** (error up 15% with one component), and the components are only moderately stable under resampling (cosine 0.62–0.72). So the three axes below are tentative: for example, component E1 contrasts MirrorCode, APEX-Agents and ProofBench with chess, GeoBench, SimpleQA and VPCT.
+Is there shared structure in the leftover? Some. The same PCA applied to the leftover finds **three components that each capture more of it than chance**. "Chance" here is the 95th percentile when the leftover is shuffled among models within each benchmark. The three components capture 24%, 18% and 16% of the leftover, against 17%, 15% and 14% for shuffled data. From the fourth component on, the real leftover falls below the shuffled line. The components are only moderately stable when models are resampled (cosine 0.62–0.72), so treat their labels as tentative. The clearest, E1, contrasts agentic and coding benchmarks (MirrorCode, APEX-Agents, ProofBench) with chess, GeoBench, SimpleQA and VPCT. It matches the axis Epoch has called "Claudiness", though in the current data it is no longer specific to Claude.[^claudiness]
 
 ![](results/figures/fig06_residual_structure.png)
 ![](results/figures/fig07_residual_components.png)
 
-### 4. The choice of loss function changes the result
-The ECI is built to fit all benchmarks on average. If we instead choose the one-number score by a different loss, starting from the ECI:
+### 4. How much should the index care about the worst-fitted benchmark?
+Build the one-number score by minimizing a power mean, over benchmarks, of the share of each benchmark the score leaves unexplained (1 − R², weighted by the number of models on each benchmark). The power p sets how much the worst-fitted benchmark matters, from not specially (p = 1) to exclusively (p = ∞):
+- **p = 1** (arithmetic mean) is exactly the first principal component of point 2.
+- **p = ∞** cares only about the worst-fitted benchmark.
 
-| Loss | Mean R² | Worst R² | Corr. with ECI | SD of score change (points) | Max change (points) | Held-out mean R² | Held-out worst R² |
-|---|---|---|---|---|---|---|---|
-| Official ECI | 0.80 | 0.23 (GeoBench) | 1.000 | 0 | 0 | n/a | n/a |
-| MSE, pooled cells | 0.80 | 0.25 | 0.997 | 1.1 | 5.3 | **0.74** | **0.17** |
-| MSE, benchmark average | 0.82 | 0.28 | 0.990 | 2.0 | 6.7 | 0.70 | 0.14 |
-| Absolute value (MAE), benchmark average | 0.81 | 0.23 | 0.992 | 1.8 | 8.2 | 0.65 | −0.27 |
-| Worst benchmark (p = 8) | 0.77 | 0.67 | 0.945 | 4.6 | 19.6 | 0.61 | −0.01 |
-| Worst benchmark (p = 64, about minimax) | 0.74 | 0.71 | 0.928 | 5.3 | 22.1 | 0.58 | −0.03 |
+| Score | Mean R² | Worst R² | Corr. with ECI | SD of score change (points) | Max change (points) |
+|---|---|---|---|---|---|
+| Official ECI | 0.83 | 0.23 (GeoBench) | 1.000 | 0 | 0 |
+| p = 1 (average = first PC) | 0.85 | 0.27 (GeoBench) | 0.995 | 1.3 | 4.6 |
+| p = ∞ (worst benchmark) | 0.75 | 0.71 (GeoBench) | 0.928 | 5.2 | 22.1 |
 
-- Squared-error and absolute-value losses reproduce the ECI to within its own uncertainty (typical 95% half-width 2.5 points).
-- A loss that cares about the worst-fitted benchmark does change the scores a lot: GeoBench's R² rises from 0.23 to 0.71, but benchmarks like METR, ARC-AGI and AIME drop from 0.93–0.96 to 0.72–0.78, and some models move by 20+ points (Gemini 1.5 Flash +22, Qwen 3.8 27B −21).
-- But that loss is worse on held-out cells, both on average and in the worst case, and the models that move most have few scores. It is not obviously a better index, only a different one.
+- p = 1 reproduces the ECI to within its own uncertainty (typical 90% half-width 2.5 points; Epoch publishes 90% intervals).
+- Caring only about the worst benchmark changes the scores a lot. GeoBench's R² rises from 0.23 to 0.71, but METR, ARC-AGI and AIME drop from 0.93–0.96 to 0.72–0.78, and some models move by 20+ points (Gemini 1.5 Flash +22, Qwen 3.8 27B −21). The ten models that move most have somewhat fewer scores than average (median 7 against 9). Its record-setters are mostly Google models.[^gemini] This is not a better index, only one built on a different value: that no ability should be left out.
 
 ![](results/figures/fig08_loss_tradeoff.png)
 ![](results/figures/fig10_loss_score_changes.png)
-![](results/figures/fig11_loss_held_out.png)
 
-**Over time.** Like Epoch's chart of ECI against release date, `fig12` plots each measure against release date with its frontier (the models that set a record when they were released).
-- The average losses track the official frontier: +16.2 to +16.5 points per year against +16.3 for the official ECI, with 75–88% of the same record-setting models.
-- The worst-benchmark loss gives a flatter frontier (+13.6 per year at p = 64) and changes who sets records (28% overlap). But that comes from a few early models with few scores, such as GPT-4, Gemini 1.5 Flash and Qwen2.5-72B (6–9 scores each, boosted by 10–22 points). Among models with at least 8 scores, the frontier slope is the same under every loss (17.7–18.3 points per year).
-- The newest frontier model (Claude Fable 5.2) is the same under every loss.
+**Over time.** Like Epoch's chart of ECI against release date, `fig12` plots each score against release date with its frontier (the models that set a record when they were released).
+- p = 1 tracks the official frontier: +16.2 points per year against +16.3 for the official ECI, with 86% of the same record-setting models.
+- p = ∞ gives a flatter frontier (+13.6 per year) and changes who sets records (28% overlap). That comes from a few early models with few scores, such as GPT-4 and Gemini 1.5 Flash, boosted by 15–22 points. Among models with at least 8 scores, the frontier slope is the same under every p (17.6–17.7 points per year, against 17.9 for the ECI).
+- The newest frontier model (Claude Fable 5.2) is the same under every p.
+
+**With a break in April 2024.** Epoch has estimated that the ECI frontier sped up around 8 April 2024. `fig13` fits a two-segment line to each frontier, with the break fixed at that date. The two segments join at the break.
+- After the break, every p gives a similar slope: +15.8 to +17.3 points per year, against +17.1 for the official ECI. Among models with at least 8 scores the range is +16.3 to +17.8.
+- Before the break, the slope can't be estimated from this sample. The 191 models start in June 2023, so each score has only 1–3 record-setting models before April 2024.
+- For reference, the official ECI over all of Epoch's models gives +14.4 before the break and +17.0 after, still from only 4 record-setters before the break.
+- So how much the index cares about the worst benchmark does not change the post-2024 rate of progress, and this data can't say whether the speed-up itself would survive.
 
 ![](results/figures/fig12_scores_over_time.png)
 ![](results/figures/fig13_frontier_over_time.png)
 
 ## Main caveats
-(Full list in [`METHODOLOGY.md` §10](METHODOLOGY.md#10-caveats).)
+(Full list in [`METHODOLOGY.md` §9](METHODOLOGY.md#9-caveats).)
+- On the logit scale, scores of 0% and 100% must be clipped to 1% and 99%. Benchmarks with many such scores look less well explained partly because of where the clip is set. On raw scores, Mystery Game Puzzles (18% of scores at the clip) is 89% explained rather than 61%, and Furniture Assembly (26%) 91% rather than 79%. Benchmarks with no clipped scores (GeoBench, MirrorCode, Fiction.LiveBench, SimpleQA) are unaffected.
 - The data are sparse and not random; conclusions concern a 29-benchmark subset, and the ECI also uses other benchmarks.
-- "Unexplained by the ECI" is a candidate list of undervalued benchmarks, not proof; some benchmarks may legitimately measure something else.
-- The residual structure is weak and its labels are interpretation.
-- My alternative-loss scores approximate the ECI with a simpler model (no priors or anchors); there is no external ground truth for "better", and the worst-benchmark loss is fragile in sparse data.
+- R² depends on which models were tested. A benchmark run only on a narrow band of models looks less well explained, even if it tracks the ECI closely. MirrorCode, Fiction.LiveBench and VPCT were run mostly on recent, strong models (ECI spread 5–8 points, against 14 for all models). A standard correction for this (Thorndike Case II) puts them at 0.80–0.89 rather than 0.49–0.57. GeoBench (0.29) and SimpleQA (0.77) remain poorly explained under it. The correction assumes each benchmark's line in the ECI extends beyond the models tested, so the main results use the uncorrected R².
+- Noise lowers R² too: part of what the ECI leaves unexplained on a small benchmark may be measurement noise rather than an undervalued ability.
+- The residual structure is modest (three components above chance, moderately stable) and its labels are interpretation.
+- The p-norm scores approximate the ECI with a simpler model (no priors; scale set by matching the ECI's mean and SD rather than Epoch's anchors). There is no external ground truth for "better", and the p = ∞ score is fragile in sparse data.
 - Confidence intervals treat models as independent, so they are too narrow.
 
 ## Running it
@@ -69,11 +76,27 @@ python -I scripts/01_pc1_vs_eci.py       data/extracted results/01_pc1_vs_eci
 python -I scripts/02_eci_residual.py     data/extracted results/02_eci_residual
 python -I scripts/03_loss_functions.py   data/extracted results/03_loss_functions
 python -I scripts/04_make_figures.py     data/extracted results
+python -I scripts/05_claudiness.py       data/extracted results
 ```
 
 ## Files
 - `METHODOLOGY.md`: how every number is computed, with equations, scripts and caveats.
-- `scripts/`: `common.py` (shared code), `download_data.py`, and `01_` to `04_` for the four steps and figures.
-- `results/`: saved tables, logs, and `figures/` (`fig01`–`fig13`).
+- `scripts/`: `common.py` (shared code), `download_data.py`, `01_` to `04_` for the four steps and figures, and `05_claudiness.py` for the comparison in footnote 2.
+- `results/`: saved tables, logs, and `figures/` (`fig01`–`fig13`; there is no `fig11`).
 
+## Data snapshot
 Data: Epoch AI, "Capabilities & benchmarking", https://epoch.ai/benchmarks (CC-BY 4.0). Not redistributed here; the download script fetches it.
+
+Epoch updates this file regularly, so a new download will give somewhat different numbers. The saved results use the file downloaded on **15 November 2026**:
+- `benchmark_data.zip`, 2,311,552 bytes, SHA-256 `d2c8ab82bfce75c8f244232ee0027ddc648a5b30a13e73f847618875e8d31d8f`
+- 256 models in `eci_scores.csv`, the latest released 9 November 2026
+
+`download_data.py` writes the date and checksum of what it fetched to `data/SNAPSHOT.txt` and warns if they differ from this snapshot.
+
+## Notes
+
+[^epoch]: Epoch's paper describing an earlier version of the ECI method reports a similar per-benchmark fit for its model: "the average R2 value is 0.71 for benchmarks with more than 25 scores, and 0.81 for benchmarks with more than 40 scores." On GeoBench it notes "we see Gemini models doing better than predicted and several Claude models doing worse than predicted," which it calls "weak evidence" that labs optimize for different things. It also says the single-number assumption "is of course not the case" (A. Ho, J.-S. Denain, D. Atanasov, S. Albanie, R. Shah, ["A Rosetta Stone for AI Benchmarks"](https://arxiv.org/abs/2512.00193), arXiv 2512.00193, November 2025, §2.1 and §3.1.2). A PCA of the same data by G. Burnham found one dominant dimension (see note 2). What this project adds is points 3 and 4.
+
+[^claudiness]: This axis matches the second component G. Burnham found in Epoch's benchmark data and called "Claudiness" (["Benchmark Scores = General Capability + Claudiness"](https://epoch.ai/gradient-updates/benchmark-scores-general-capability-claudiness), Epoch AI Gradient Updates, 20 November 2025). He published only his seven largest weights. On the two of those benchmarks in this sample the weights agree (VPCT −0.28 vs −0.28; FrontierMath Tier 4 −0.26 vs −0.22). His other five, mostly agentic computer-use tasks, are scored on 13 or fewer models in Epoch's data. The models he names as most and least Claude-like sit at the 75th–90th and 13th–39th percentiles of E1. In the current data, though, the axis is not specific to Claude. Developer explains 12% of E1 and Anthropic against all others 3%. xAI and Z.ai average higher than Anthropic, and Claude Opus versions range from the 43rd percentile (Opus 4.7) to the 91st (Opus 4.1). E1 is better read as a trade-off between agentic coding and factual recall, geolocation and visual tasks, on which particular model generations differ. Burnham's method also differs: an ordinary PCA of 39 benchmarks with missing scores filled in from similar models, not a PCA of what the ECI leaves out. (`scripts/05_claudiness.py`; `results/05_claudiness/`.)
+
+[^gemini]: Under p = ∞, Google DeepMind models make up 7 of the 16 record-setters (3 of 25 under the official ECI), while OpenAI's fall from 16 to 4. Google models also gain the most on average (+1.6 points). The binding benchmark is GeoBench, on which Epoch's paper found Gemini models do better than predicted (note 1). So the worst-benchmark index largely rewards one developer's strength on one benchmark. (`results/03_loss_functions/loss_by_developer.csv`.)

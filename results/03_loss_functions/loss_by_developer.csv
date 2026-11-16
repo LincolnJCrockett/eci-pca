@@ -1,0 +1,31 @@
+solution,developer,n_models,mean_change_points,frontier_models,frontier_share
+Official ECI,OpenAI,42,0.0,16,0.64
+Official ECI,Alibaba,29,0.0,0,0.0
+Official ECI,Anthropic,26,0.0,6,0.24
+Official ECI,Google DeepMind,26,0.0,3,0.12
+Official ECI,Meta AI,15,0.0,0,0.0
+Official ECI,DeepSeek,13,0.0,0,0.0
+Official ECI,xAI,10,0.0,0,0.0
+Official ECI,Mistral AI,8,0.0,0,0.0
+Official ECI,Moonshot,7,0.0,0,0.0
+Official ECI,Z.ai (Zhipu AI),6,0.0,0,0.0
+p=1 (average = first PC),OpenAI,42,0.29,17,0.63
+p=1 (average = first PC),Alibaba,29,-0.33,0,0.0
+p=1 (average = first PC),Anthropic,26,0.118,7,0.259
+p=1 (average = first PC),Google DeepMind,26,0.078,3,0.111
+p=1 (average = first PC),Meta AI,15,0.12,0,0.0
+p=1 (average = first PC),DeepSeek,13,-0.219,0,0.0
+p=1 (average = first PC),xAI,10,0.197,0,0.0
+p=1 (average = first PC),Mistral AI,8,-0.017,0,0.0
+p=1 (average = first PC),Moonshot,7,-0.676,0,0.0
+p=1 (average = first PC),Z.ai (Zhipu AI),6,0.321,0,0.0
+p=inf (worst benchmark),OpenAI,42,0.186,4,0.25
+p=inf (worst benchmark),Alibaba,29,-0.701,1,0.062
+p=inf (worst benchmark),Anthropic,26,-0.935,4,0.25
+p=inf (worst benchmark),Google DeepMind,26,1.624,7,0.438
+p=inf (worst benchmark),Meta AI,15,0.35,0,0.0
+p=inf (worst benchmark),DeepSeek,13,1.066,0,0.0
+p=inf (worst benchmark),xAI,10,-1.011,0,0.0
+p=inf (worst benchmark),Mistral AI,8,-0.792,0,0.0
+p=inf (worst benchmark),Moonshot,7,-0.729,0,0.0
+p=inf (worst benchmark),Z.ai (Zhipu AI),6,-1.003,0,0.0

@@ -1,39 +1,51 @@
-191 models x 29 benchmarks; mean ECI 95% half-width = 2.5 points
-sanity: worst-benchmark p=1 vs MSE (benchmark avg), correlation of scores = 1.0000  (should be ~1)
+191 models x 29 benchmarks; mean ECI 90% half-width = 2.5 points
+sanity: p=1 solution vs first principal component, correlation = 1.0000  (should be ~1)
 
-IN-SAMPLE (R2_b = share of benchmark b's variation across models explained by the score)
-                        mean_R2  worst_R2 worst_benchmark  corr_with_ECI  sd_change_points  max_abs_change_points  mean_rank_shift_pct  max_rank_shift
-solution                                                                                                                                              
-Official ECI              0.800     0.225        GeoBench          1.000             0.000                  0.000                0.000               0
-MSE (cells)               0.804     0.248        GeoBench          0.997             1.099                  5.303                1.645              26
-MSE (benchmark avg)       0.824     0.278        GeoBench          0.990             1.963                  6.676                2.766              27
-MAE (benchmark avg)       0.811     0.233        GeoBench          0.992             1.787                  8.241                2.415              24
-Worst benchmark (p=8)     0.767     0.668        GeoBench          0.945             4.587                 19.569                6.612              91
-Worst benchmark (p=64)    0.739     0.709        GeoBench          0.928             5.257                 22.109                7.664              97
-largest changes (points), worst benchmark p=64:
+R2_b = share of benchmark b's variation across models explained (logit scores); mean_R2 weights benchmarks by number of models
+                          mean_R2  worst_R2 worst_benchmark  corr_with_ECI  sd_change_points  max_abs_change_points  mean_rank_shift_pct  max_rank_shift
+solution                                                                                                                                                
+Official ECI                0.834     0.225        GeoBench          1.000             0.000                  0.000                0.000               0
+p=1 (average = first PC)    0.845     0.266        GeoBench          0.995             1.320                  4.588                1.922              22
+p=inf (worst benchmark)     0.752     0.708        GeoBench          0.928             5.224                 22.091                7.659              96
+largest changes (points), p=inf (worst benchmark):
 model
 Gemini 1.5 Flash (Sep 2024)    22.1
-GPT-4 (Jun 2023)               14.7
-GPT-3.5 Turbo (Jan 2024)       13.7
-Qwen 3.8 27B                  -21.3
-Gemma 4 31B IT                -17.2
-Qwen3.6 27B                   -15.3
+GPT-4 (Jun 2023)               14.6
+GPT-3.5 Turbo (Jan 2024)       13.6
+Qwen 3.8 27B                  -21.0
+Gemma 4 31B IT                -17.0
+Qwen3.6 27B                   -15.2
 
 OVER TIME (frontier = models that set a new record at their release date)
-                        n_frontier_models  jaccard_with_official_frontier  frontier_slope_points_per_year  frontier_slope_models_8plus_scores  all_models_slope_points_per_year  corr_of_change_with_release_date latest_frontier_model
-solution                                                                                                                                                                                                                               
-Official ECI                           25                           1.000                          16.325                              17.900                            15.356                               NaN      Claude Fable 5.2
-MSE (cells)                            24                           0.885                          16.523                              17.754                            15.383                             0.020      Claude Fable 5.2
-MSE (benchmark avg)                    24                           0.750                          16.215                              18.336                            15.020                            -0.142      Claude Fable 5.2
-MAE (benchmark avg)                    24                           0.885                          16.420                              18.262                            15.080                            -0.128      Claude Fable 5.2
-Worst benchmark (p=8)                  21                           0.484                          14.339                              17.799                            13.869                            -0.268      Claude Fable 5.2
-Worst benchmark (p=64)                 16                           0.281                          13.613                              17.689                            13.540                            -0.285      Claude Fable 5.2
+                                            n_frontier_models  jaccard_with_official_frontier  frontier_slope_points_per_year  frontier_slope_models_8plus_scores  n_frontier_before_break  slope_before_break  slope_after_break  slope_after_break_8plus  corr_of_change_with_release_date latest_frontier_model
+solution                                                                                                                                                                                                                                                                                                          
+Official ECI                                               25                           1.000                          16.325                              17.900                        3               8.641             17.102                   16.268                               NaN      Claude Fable 5.2
+p=1 (average = first PC)                                   27                           0.857                          16.202                              17.618                        3               4.447             17.285                   16.915                            -0.142      Claude Fable 5.2
+p=inf (worst benchmark)                                    16                           0.281                          13.605                              17.677                        1              -1.228             15.773                   17.783                            -0.284      Claude Fable 5.2
+Official ECI, all Epoch models (reference)                 24                             NaN                          16.569                                 NaN                        4              14.440             17.036                      NaN                               NaN      Claude Fable 5.2
 
-HELD-OUT (benchmarks with >= 8 test cells)
-                        mean_R2  worst_R2 worst_benchmark  mean_abs_error_in_sd_units
-solution                                                                             
-MSE (cells)               0.738     0.166        GeoBench                       0.386
-MSE (benchmark avg)       0.700     0.144        GeoBench                       0.413
-MAE (benchmark avg)       0.646    -0.271  Aider polyglot                       0.429
-Worst benchmark (p=8)     0.609    -0.007      MirrorCode                       0.479
-Worst benchmark (p=64)    0.580    -0.033      MirrorCode                       0.499
+BY DEVELOPER (developers with >= 5 models)
+solution         Official ECI  p=1 (average = first PC)  p=inf (worst benchmark)
+developer                                                                       
+Alibaba                     0                         0                        1
+Anthropic                   6                         7                        4
+DeepSeek                    0                         0                        0
+Google DeepMind             3                         3                        7
+Meta AI                     0                         0                        0
+Mistral AI                  0                         0                        0
+Moonshot                    0                         0                        0
+OpenAI                     16                        17                        4
+Z.ai (Zhipu AI)             0                         0                        0
+xAI                         0                         0                        0
+                 n_models  mean_change_points
+developer                                    
+xAI                    10               -1.01
+Z.ai (Zhipu AI)         6               -1.00
+Anthropic              26               -0.93
+Mistral AI              8               -0.79
+Moonshot                7               -0.73
+Alibaba                29               -0.70
+OpenAI                 42                0.19
+Meta AI                15                0.35
+DeepSeek               13                1.07
+Google DeepMind        26                1.62

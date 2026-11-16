@@ -1,8 +1,9 @@
-"""Point 3: remove the variation the ECI explains (spec E). What is left, and is it structured?
+"""Point 3: remove the variation the ECI explains. What is left, and is it structured?
 
 Usage: python -I scripts/02_eci_residual.py <extracted_dir> <out_dir>
-For every benchmark, regress the logit score on the official ECI (free intercept and slope). Residuals are what ECI does not explain.
-Then run low-rank PCA on the residuals, and test whether the structure is real (shuffled null, held-out prediction, bootstrap stability).
+For every benchmark, regress the logit score on the official ECI (free intercept and slope). Residuals are what the ECI does not explain.
+Then run the same PCA as point 2 on the residuals, and compare the share of residual variation each component captures with a
+shuffled null (residuals shuffled among the models within each benchmark, then the same PCA).
 """
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -10,44 +11,41 @@ import numpy as np, pandas as pd
 from common import *
 
 ex, out = sys.argv[1], sys.argv[2]; os.makedirs(out, exist_ok=True)
-D = load(ex); Xv, obs, eci, bench = D.Xv, D.obs, D.eci, D.bench; n, m = Xv.shape; N = int(obs.sum())
-P = ols_on_eci(Xv, eci); R0 = np.where(obs, Xv - P, np.nan)                         # what ECI does not explain
+D = load(ex); Xv, Mv, obs, eci, bench = D.Xv, D.Mv, D.obs, D.eci, D.bench; n, m = Xv.shape; N = int(obs.sum())
+P = ols_on_eci(Xv, eci); R0 = np.where(obs, Xv - P, np.nan)                         # what the ECI does not explain (logit)
 
-# ---- how much does ECI explain, benchmark by benchmark ----
-cm = np.where(obs, Xv, 0).sum(0) / obs.sum(0); sst = np.where(obs, (Xv - cm) ** 2, 0).sum(0); sse = np.where(obs, (Xv - P) ** 2, 0).sum(0)
-sd = np.sqrt(sst / obs.sum(0))
-B = pd.DataFrame({"n_models": obs.sum(0), "explained_by_ECI": 1 - sse / sst}, index=bench); B["unexplained"] = 1 - B.explained_by_ECI; B = B.sort_values("unexplained", ascending=False)
-print(f"ECI explains {1 - (sse / sd ** 2).sum() / N:.1%} (benchmarks weighted equally) / {1 - sse.sum() / sst.sum():.1%} (pooled) of within-benchmark variation")
+# ---- how much does the ECI explain, benchmark by benchmark (logit scores) ----
+r2b, r2_all = logit_r2(eci, Xv)
+B = pd.DataFrame({"n_models": obs.sum(0), "explained_by_ECI": r2b}, index=bench); B["unexplained"] = 1 - B.explained_by_ECI; B = B.sort_values("unexplained", ascending=False)
+print(f"ECI explains {r2_all:.1%} of within-benchmark variation of logit scores (each score counts once)")
 print("\nLeast explained benchmarks first:"); print(B.round(2).to_string()); B.round(4).to_csv(f"{out}/eci_explained_by_benchmark.csv")
 
-# ---- low-rank structure in the residuals ----
+# ---- PCA of the residuals ----
 f = fit_lowrank(Xv, 3, base=P); L, S = f["load"].copy(), f["scores"].copy()
 for j in range(3):
     sg = 1 if L[np.abs(L[:, j]).argmax(), j] > 0 else -1; L[:, j] *= sg; S[:, j] *= sg    # sign: largest loading positive
-Dres = np.where(obs, Xv - P, 0); sres = np.sqrt((Dres ** 2).sum(0) / obs.sum(0))
-share = {k: 1 - (((Dres - fit_lowrank(Xv, k, base=P)["R"]) / sres) ** 2)[obs].sum() / N for k in (1, 2, 3)}
-print("\nIn-sample share of the residual variation captured by k components (optimistic):", {k: round(v, 3) for k, v in share.items()})
 pd.DataFrame(L, index=bench, columns=["E1", "E2", "E3"]).assign(n_models=obs.sum(0)).round(3).to_csv(f"{out}/residual_loadings.csv")
 pd.DataFrame(S, index=D.M.index, columns=["E1", "E2", "E3"]).round(4).to_csv(f"{out}/residual_scores.csv")
 for j in range(3):
     o = np.argsort(L[:, j]); print(f"E{j+1} +: " + ", ".join(f"{bench[i]} {L[i,j]:.2f}" for i in o[::-1][:6]) + "\n    -: " + ", ".join(f"{bench[i]} {L[i,j]:.2f}" for i in o[:6]))
 
-# ---- is the structure real? (1) eigenvalues vs shuffled null ----
-w = pairwise_eigs(R0); rng = np.random.default_rng(1); nulls = []
+
+# ---- share of residual variation captured by each component, vs shuffled null ----
+K = 8
+def shares(Xr):
+    """share of the residual variation (each benchmark scaled to unit RMS) captured by component k = total(k) - total(k-1)"""
+    Dr = np.where(obs, Xr - P, 0); s = np.sqrt((Dr ** 2).sum(0) / obs.sum(0)); tot = [0.0]
+    for k in range(1, K + 1): tot.append(1 - (((Dr - fit_lowrank(Xr, k, base=P)["R"]) / s) ** 2)[obs].sum() / N)
+    return np.diff(tot)
+real = shares(Xv); rng = np.random.default_rng(1); nulls = []
 for _ in range(100):
     Rp = R0.copy()
     for j in range(m): o = obs[:, j]; Rp[o, j] = rng.permutation(R0[o, j])         # shuffle residuals within each benchmark
-    nulls.append(pairwise_eigs(Rp))
-n95 = np.percentile(nulls, 95, axis=0)
-pd.DataFrame({"eigenvalue": w[:10], "null_95th_pct": n95[:10]}, index=range(1, 11)).round(4).to_csv(f"{out}/residual_eigenvalues.csv")
-print("\nEigenvalues of the residual correlation matrix vs shuffled null:", [(round(a, 2), round(b, 2)) for a, b in zip(w[:5], n95[:5])])
+    nulls.append(shares(np.where(obs, P + Rp, np.nan)))
+SH = pd.DataFrame({"share_of_residual_variation": real, "null_95th_pct": np.percentile(nulls, 95, axis=0), "null_mean": np.mean(nulls, 0)}, index=range(1, K + 1)); SH.index.name = "component"
+print("\nShare of residual variation captured by each component vs shuffled null:"); print(SH.round(3).to_string()); SH.round(4).to_csv(f"{out}/residual_variance_by_component.csv")
 
-# ---- (2) does adding components improve held-out prediction? ----
-ks = list(range(0, 7)); cv = cv_mse(Xv, lambda Xt, k: fit_lowrank(Xt, k, base=ols_on_eci(Xt, eci))["pred"], ks)
-CV = pd.DataFrame({"held_out_MSE": cv, "change_vs_ECI_only": {k: 1 - cv[k] / cv[0] for k in ks}}); CV.index.name = "k"
-print("\nHeld-out MSE with k residual components added to the ECI prediction:"); print(CV.round(4).to_string()); CV.round(5).to_csv(f"{out}/residual_held_out.csv")
-
-# ---- (3) bootstrap stability of the loadings ----
+# ---- bootstrap stability of the loadings ----
 rngb = np.random.default_rng(2); st = []
 for _ in range(60):
     ib = rngb.choice(n, n); Xb = Xv[ib]

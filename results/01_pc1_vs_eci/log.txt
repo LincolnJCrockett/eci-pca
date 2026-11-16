@@ -1,61 +1,50 @@
 191 models x 29 benchmarks, 2078 scores (37.5% of cells)
 
-In-sample share of within-benchmark variance explained:
-                                   R2_in_sample_equal_weight  R2_in_sample_pooled
-model                                                                            
-PCA rank 1, conventional (A)                           0.662                0.689
-PCA rank 2, conventional (A)                           0.866                0.888
-PCA rank 3, conventional (A)                           0.911                0.915
-PCA rank 1, joint intercepts (AJ)                      0.840                0.866
-PCA rank 2, joint intercepts (AJ)                      0.897                0.896
-PCA rank 3, joint intercepts (AJ)                      0.923                0.929
-official ECI as the single score                       0.834                0.872
-
-Held-out R2 vs the benchmark-mean model (5-fold CV x 2):
-       A     AJ
-k              
-0  0.000  0.000
-1  0.604  0.821
-2  0.752  0.779
-3  0.696  0.689
-4  0.632  0.678
+Share of within-benchmark variation of logit scores explained (each score counts once; official ECI as one score: 0.834):
+           explained_by_this_component  cumulative
+component                                         
+1                                0.845       0.845
+2                                0.054       0.899
+3                                0.027       0.926
+4                                0.024       0.950
+5                                0.015       0.965
 
 ECI vs first principal component:
-      pearson_r  ci_low  ci_high  spearman  r_squared
-spec                                                 
-A         0.968   0.958    0.976     0.959      0.938
-AJ        0.995   0.994    0.996     0.995      0.990
+                                         pearson_r  ci_low  ci_high  spearman  r_squared
+spec                                                                                    
+joint intercepts                             0.995   0.994    0.997     0.995      0.991
+conventional centering (for comparison)      0.968   0.958    0.976     0.959      0.938
 
 correlation of bias with strength of tested models: 0.90
 
-Share of each benchmark's variation across models explained:
-                                   n_models  R2_ECI  R2_PCA_rank1_AJ
-METR Time Horizons                       32    0.96             0.92
-FrontierMath-Tiers-1-3-v2-Private        90    0.94             0.93
-GPQA diamond                            170    0.94             0.93
-ARC-AGI                                  91    0.94             0.93
-OTIS Mock AIME 2024-2025                166    0.93             0.91
-DTBench                                 147    0.93             0.95
-WeirdML v3                               26    0.93             0.89
-MATH level 5                             71    0.93             0.89
-LMCA                                    126    0.92             0.93
-Terminal Bench                           31    0.91             0.91
-ARC-AGI-2                                90    0.91             0.90
-FrontierMath-Tier-4-v2-Private           72    0.89             0.85
-GSO-Bench                                28    0.89             0.87
-WeirdML                                 115    0.88             0.89
-EBR-bench                                31    0.86             0.83
-Balrog                                   29    0.83             0.86
-ProofBench                               70    0.83             0.80
-SimpleBench                              95    0.81             0.84
-Aider polyglot                           44    0.81             0.84
-Chess Puzzles                            87    0.80             0.82
-Furniture Assembly                       39    0.79             0.70
-FrontierCode                             42    0.77             0.76
-APEX-Agents                              58    0.72             0.73
-SimpleQA Verified                        88    0.62             0.70
-Mystery Game Puzzles                     82    0.61             0.69
-Fiction.LiveBench                        50    0.57             0.74
-VPCT                                     25    0.55             0.69
-MirrorCode                               39    0.49             0.43
-GeoBench                                 44    0.23             0.30
+Share of each benchmark's variation across models explained (logit scores):
+                                   n_models  R2_ECI  R2_PC1
+METR Time Horizons                       32    0.96    0.92
+FrontierMath-Tiers-1-3-v2-Private        90    0.94    0.94
+GPQA diamond                            170    0.94    0.93
+ARC-AGI                                  91    0.94    0.92
+OTIS Mock AIME 2024-2025                166    0.93    0.91
+DTBench                                 147    0.93    0.94
+WeirdML v3                               26    0.93    0.93
+MATH level 5                             71    0.93    0.91
+LMCA                                    126    0.92    0.93
+Terminal Bench                           31    0.91    0.91
+ARC-AGI-2                                90    0.91    0.90
+FrontierMath-Tier-4-v2-Private           72    0.89    0.87
+GSO-Bench                                28    0.89    0.88
+WeirdML                                 115    0.88    0.88
+EBR-bench                                31    0.86    0.88
+Balrog                                   29    0.83    0.85
+ProofBench                               70    0.83    0.83
+SimpleBench                              95    0.81    0.82
+Aider polyglot                           44    0.81    0.86
+Chess Puzzles                            87    0.80    0.83
+Furniture Assembly                       39    0.79    0.78
+FrontierCode                             42    0.77    0.82
+APEX-Agents                              58    0.72    0.78
+SimpleQA Verified                        88    0.62    0.66
+Mystery Game Puzzles                     82    0.61    0.67
+Fiction.LiveBench                        50    0.57    0.74
+VPCT                                     25    0.55    0.65
+MirrorCode                               39    0.49    0.56
+GeoBench                                 44    0.23    0.27

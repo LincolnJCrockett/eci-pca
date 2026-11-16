@@ -1,7 +1,5 @@
-solution,n_frontier_models,jaccard_with_official_frontier,frontier_slope_points_per_year,frontier_slope_models_8plus_scores,all_models_slope_points_per_year,corr_of_change_with_release_date,latest_frontier_model
-Official ECI,25,1.0,16.325,17.9,15.356,,Claude Fable 5.2
-MSE (cells),24,0.885,16.523,17.754,15.383,0.02,Claude Fable 5.2
-MSE (benchmark avg),24,0.75,16.215,18.336,15.02,-0.142,Claude Fable 5.2
-MAE (benchmark avg),24,0.885,16.42,18.262,15.08,-0.128,Claude Fable 5.2
-Worst benchmark (p=8),21,0.484,14.339,17.799,13.869,-0.268,Claude Fable 5.2
-Worst benchmark (p=64),16,0.281,13.613,17.689,13.54,-0.285,Claude Fable 5.2
+solution,n_frontier_models,jaccard_with_official_frontier,frontier_slope_points_per_year,frontier_slope_models_8plus_scores,n_frontier_before_break,slope_before_break,slope_after_break,slope_after_break_8plus,corr_of_change_with_release_date,latest_frontier_model
+Official ECI,25,1.0,16.325,17.9,3,8.641,17.102,16.268,,Claude Fable 5.2
+p=1 (average = first PC),27,0.857,16.202,17.618,3,4.447,17.285,16.915,-0.142,Claude Fable 5.2
+p=inf (worst benchmark),16,0.281,13.605,17.677,1,-1.228,15.773,17.783,-0.284,Claude Fable 5.2
+"Official ECI, all Epoch models (reference)",24,,16.569,,4,14.44,17.036,,,Claude Fable 5.2

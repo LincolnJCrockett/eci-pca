@@ -1,0 +1,50 @@
+Burnham's PC2 weights vs E1 loadings:
+                               burnham_PC2_weight  E1_loading  models_in_Epoch_data  in_this_sample
+benchmark                                                                                          
+The Agent Company                            0.42         NaN                    13           False
+OSUniverse                                   0.37         NaN                     0           False
+VideoMME                                    -0.35         NaN                     0           False
+OSWorld                                      0.35         NaN                     9           False
+Factorio Learning Environment                0.33         NaN                     0           False
+VPCT                                        -0.28      -0.282                    26            True
+FrontierMath Tier 4                         -0.26      -0.216                    72            True
+
+cosine between E1 loadings and the loadings of PC2 of the ordinary PCA: 0.79
+
+E1 percentile of the models Burnham names, and of the other Claude Opus models:
+                                        burnham_group   E1  E1_percentile
+model                                                                    
+Claude 3.5 Sonnet (October 2024)                 most  4.1           84.8
+Claude 3.5 Sonnet                                most  2.4           77.0
+Claude 3.7 Sonnet                                most  2.0           74.9
+Claude Sonnet 4                                  most  6.0           90.1
+Claude Opus 4                                    most  3.5           81.2
+GPT-5                                           least -2.1           22.5
+GPT-4o mini                                     least -1.9           23.6
+GPT-4o (Nov 2024)                               least -2.7           16.8
+GPT-4o (Aug 2024)                               least -3.6           12.6
+o4-mini                                         least -0.7           38.7
+Claude Opus 4.1                   (other Claude Opus)  6.4           91.1
+Claude Opus 4.5                   (other Claude Opus)  3.6           83.2
+Claude Opus 4.6                   (other Claude Opus)  0.6           56.0
+Claude Opus 4.7                   (other Claude Opus) -0.5           43.5
+Claude Opus 4.8                   (other Claude Opus) -0.1           49.2
+Claude Opus 5                     (other Claude Opus)  2.4           76.4
+Claude Opus 5.5                   (other Claude Opus)  1.5           68.1
+
+share of E1 explained by developer (10 developers with >= 5 models): 0.121 (permutation p = 0.0075)
+share of E1 explained by Anthropic vs everyone else: 0.026; Anthropic mean +2.62 vs -0.43 (0.47 SD); P(random Claude > random other) = 0.75
+
+mean E1 by developer:
+                 mean_E1  n_models
+Organization                      
+Meta AI            -3.24        15
+OpenAI             -2.53        42
+Mistral AI         -0.90         8
+Alibaba            -0.66        29
+Google DeepMind     0.19        26
+Moonshot            1.53         7
+DeepSeek            1.67        13
+Anthropic           2.62        26
+Z.ai (Zhipu AI)     3.35         6
+xAI                 3.81        10

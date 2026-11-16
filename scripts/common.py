@@ -1,7 +1,10 @@
-"""Shared code: data loading, low-rank PCA with missing data, cross-validation, one-dimensional scores under different losses.
+"""Shared code: data loading, PCA with missing data, the fit measure (logit R2), one-dimensional scores under a p-norm loss.
 
 Scripts import this with  sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  (needed under python -I).
 See METHODOLOGY.md for the equations.
+
+One weighting is used throughout: every observed score counts once, after scaling each benchmark to unit spread
+(so benchmarks scored on more models count more).  This is what PCA with missing data does.
 """
 from types import SimpleNamespace
 import numpy as np, pandas as pd
@@ -11,7 +14,7 @@ from scipy.optimize import minimize
 # ------------------------------------------------------------------ data
 def load(ex, min_b=25, min_obs_model=4, legacy_overlap=7):
     """Benchmark x model table used everywhere.  ex = folder where benchmark_data.zip was extracted.
-    Returns logit scores X (NaN = not evaluated), the official ECI, and the benchmark/model names."""
+    Returns raw scores M, logit scores X (NaN = not evaluated), the official ECI, and the benchmark/model names."""
     d = pd.read_csv(f"{ex}/epoch_capabilities_index/processed_data_for_eci.csv")
     meta = pd.read_csv(f"{ex}/benchmark_metadata.csv").set_index("benchmark")
     E = pd.read_csv(f"{ex}/epoch_capabilities_index/eci_scores.csv").set_index("Model")
@@ -26,10 +29,28 @@ def load(ex, min_b=25, min_obs_model=4, legacy_overlap=7):
         M = M.loc[:, M.notna().sum() >= 15]
     Mc = M.clip(.01, .99)
     X = np.log(Mc / (1 - Mc))
-    half = ((E["eci_ci_high"] - E["eci_ci_low"]) / 2).reindex(M.index)
-    return SimpleNamespace(M=M, X=X, Xv=X.to_numpy(float), obs=~X.isna().to_numpy(), bench=list(M.columns),
+    half = ((E["eci_ci_high"] - E["eci_ci_low"]) / 2).reindex(M.index)                       # Epoch publishes 90% intervals
+    return SimpleNamespace(M=M, Mv=M.to_numpy(float), X=X, Xv=X.to_numpy(float), obs=~X.isna().to_numpy(), bench=list(M.columns),
                            eci=E["eci"].reindex(M.index).to_numpy(float), eci_halfwidth=float(half.mean()), meta=meta, raw=d,
                            dates=pd.to_datetime(E["date"].reindex(M.index)))
+
+
+BREAK_DATE = pd.Timestamp("2024-04-08")   # breakpoint Epoch estimated for the ECI frontier (epoch.ai/data-insights/ai-capabilities-progress-has-sped-up)
+
+
+def frontier_idx(score, dates, keep=None):
+    """indices of models that beat every earlier-released model (running maximum by release date); keep = optional boolean filter"""
+    best, rec = -np.inf, []
+    for i in np.argsort(np.asarray(dates), kind="stable"):
+        if (keep is None or keep[i]) and score[i] > best: best = score[i]; rec.append(i)
+    return np.array(rec, dtype=int)
+
+
+def hinge_fit(t, y, t0):
+    """continuous two-segment line y = a + b1 t + b2 max(t - t0, 0), break fixed at t0.
+    Returns slope before, slope after, and the coefficients (a, b1, b2)."""
+    A = np.c_[np.ones(len(t)), t, np.clip(t - t0, 0, None)]; c = np.linalg.lstsq(A, y, rcond=None)[0]
+    return c[1], c[1] + c[2], c
 
 
 def corr(a, b):
@@ -38,20 +59,21 @@ def corr(a, b):
     return r, np.tanh(np.arctanh(r) - 1.96 * se), np.tanh(np.arctanh(r) + 1.96 * se), pd.Series(a).corr(pd.Series(b), method="spearman")
 
 
-# ------------------------------------------------------------------ low-rank PCA with missing data
+# ------------------------------------------------------------------ PCA with missing data
 def fit_lowrank(Xin, k, base="joint", iters=400, tol=1e-6):
     """Rank-k PCA of Xin (NaN = missing) by iterative SVD on observed cells.
-    base = "fixed" : subtract each benchmark's observed mean              (spec A, conventional PCA)
-           "joint" : benchmark intercepts re-estimated with the factor    (spec AJ)
-           ndarray : subtract this full matrix                            (spec E: the part ECI explains)
-    Columns of the remainder are divided by their RMS.  Returns pred (= base + low rank), scores, loadings."""
+    base = "joint" : benchmark intercepts estimated together with the components; each benchmark divided by its observed SD
+           "fixed" : subtract each benchmark's observed mean (conventional PCA; only used to show the selection bias)
+           ndarray : subtract this full matrix (the part the ECI explains); each benchmark divided by the RMS of what is left
+    Returns pred (= base + low rank), scores, loadings."""
     ob = ~np.isnan(Xin); Xo = np.where(ob, Xin, 0.0); R = np.zeros_like(Xo); cnt = ob.sum(0).clip(1)
     colmean = lambda Y: np.tile((np.where(ob, Y, 0.0)).sum(0) / cnt, (Xin.shape[0], 1))
     fixed = colmean(Xo) if isinstance(base, str) and base == "fixed" else (base if not isinstance(base, str) else None)
+    sd_obs = np.sqrt((np.where(ob, Xo - colmean(Xo), 0.0) ** 2).sum(0) / cnt)
 
     def parts(R):
         B = colmean(Xo - R) if fixed is None else fixed
-        D = np.where(ob, Xo - B, 0.0); s = np.sqrt((D ** 2).sum(0) / cnt); s[s < 1e-8] = 1
+        D = np.where(ob, Xo - B, 0.0); s = sd_obs.copy() if fixed is None else np.sqrt((D ** 2).sum(0) / cnt); s[s < 1e-8] = 1
         return B, s, np.where(ob, D, R) / s
 
     for _ in range(iters if k > 0 else 0):
@@ -66,22 +88,8 @@ def fit_lowrank(Xin, k, base="joint", iters=400, tol=1e-6):
     return res
 
 
-def cv_mse(Xin, pred_fn, ks, folds=5, reps=2):
-    """Held-out-cell mean squared error for each k.  A cell is testable if its model keeps >= 2 and its benchmark >= 5 training scores."""
-    rng = np.random.default_rng(0); idx = np.argwhere(~np.isnan(Xin)); sse = {k: 0.0 for k in ks}; cnt = 0
-    for _ in range(reps):
-        for part in np.array_split(idx[rng.permutation(len(idx))], folds):
-            Xt = Xin.copy(); Xt[part[:, 0], part[:, 1]] = np.nan
-            ro = (~np.isnan(Xt)).sum(1); co = (~np.isnan(Xt)).sum(0)
-            pt = part[(ro[part[:, 0]] >= 2) & (co[part[:, 1]] >= 5)]
-            for k in ks:
-                P = pred_fn(Xt, k); sse[k] += ((P[pt[:, 0], pt[:, 1]] - Xin[pt[:, 0], pt[:, 1]]) ** 2).sum()
-            cnt += len(pt)
-    return {k: sse[k] / cnt for k in ks}
-
-
 def ols_on_eci(Xt, eci):
-    """Per-benchmark least squares of the score on standardized ECI (free intercept and slope); full-matrix prediction.
+    """Per-benchmark least squares of the logit score on standardized ECI (free intercept and slope); full-matrix prediction.
     On the logit scale this is the same S-curve as ECI's  sigmoid(a (capability - difficulty))."""
     z = (eci - eci.mean()) / eci.std(); Dm = np.c_[np.ones(len(z)), z]; P = np.zeros_like(Xt)
     for j in range(Xt.shape[1]):
@@ -89,73 +97,57 @@ def ols_on_eci(Xt, eci):
     return P
 
 
-def pairwise_eigs(Xr, min_periods=12):
-    """Eigenvalues of the pairwise-complete correlation matrix (missing pairs set to 0, then made positive semi-definite)"""
-    C = pd.DataFrame(Xr).corr(min_periods=min_periods).fillna(0).to_numpy(copy=True); np.fill_diagonal(C, 1)
-    w, V = np.linalg.eigh(C); w = np.clip(w, 1e-6, None); C = (V * w) @ V.T; s_ = np.sqrt(np.diag(C)); C /= np.outer(s_, s_)
-    return np.sort(np.linalg.eigvalsh(C))[::-1]
+# ------------------------------------------------------------------ fit measure: logit-score R2
+def logit_r2(S, X):
+    """How much of each benchmark the score(s) explain, on logit scores.
+    For each benchmark, least squares of the logit score on the score(s) with an intercept (a straight line on the logit scale
+    is the ECI's S-curve).  S = one score per model (vector) or n x k matrix of scores.
+    Returns per-benchmark R2_b, and the overall R2 = average of R2_b weighted by the number of models scored on each benchmark
+    (= every score counts once, after scaling each benchmark to unit spread)."""
+    S = np.atleast_2d(np.asarray(S, float).T).T; A = np.c_[np.ones(len(S)), S]; o = ~np.isnan(X); n = o.sum(0); r2 = np.zeros(X.shape[1])
+    for j in range(X.shape[1]):
+        oj = o[:, j]; x = X[oj, j]; e = x - A[oj] @ np.linalg.lstsq(A[oj], x, rcond=None)[0]; r2[j] = 1 - (e ** 2).sum() / ((x - x.mean()) ** 2).sum()
+    return r2, (n * r2).sum() / n.sum()
 
 
-# ------------------------------------------------------------------ one score per model under different losses
+# ------------------------------------------------------------------ one score per model under a p-norm loss
 def prep(X):
     idx = [np.where(~np.isnan(X[:, j]))[0] for j in range(X.shape[1])]
     yc = [X[i, j] - X[i, j].mean() for j, i in enumerate(idx)]
-    return idx, yc, [np.linalg.norm(y) for y in yc]
+    return idx, yc, [np.linalg.norm(y) for y in yc], np.array([len(i) for i in idx], float)
 
 
 def benchmark_r(theta, data):
-    """per-benchmark correlation of the score with the benchmark over the models scored on it (+ pieces for the gradient)"""
-    idx, yc, ny = data; r = np.zeros(len(idx)); parts = []
+    """per-benchmark correlation of the score with the (logit) benchmark over the models scored on it (+ pieces for the gradient)"""
+    idx, yc, ny, _ = data; r = np.zeros(len(idx)); parts = []
     for j, (i, y, l) in enumerate(zip(idx, yc, ny)):
         c = theta[i] - theta[i].mean(); nc = np.linalg.norm(c) + 1e-12; r[j] = c @ y / (nc * l); parts.append((c, nc))
     return r, parts
 
 
-def r2_by_benchmark(theta, data):
-    r, _ = benchmark_r(theta, data); return r * np.abs(r)
-
-
 def pnorm_obj(theta, p, data):
-    """p-norm over benchmarks of u_b = 1 - r_b|r_b| (= 1 - R2_b), and its gradient.  p = 1: average fit; p large: worst benchmark."""
-    idx, yc, ny = data; r, parts = benchmark_r(theta, data)
-    u = np.clip(1 - r * np.abs(r), 1e-9, None); um = u.max(); v = u / um; S = np.mean(v ** p); F = um * S ** (1 / p)
-    w = S ** (1 / p - 1) * v ** (p - 1) / len(u); g = np.zeros_like(theta)
+    """Weighted power mean over benchmarks of u_b = 1 - r_b|r_b| (= 1 - R2_b on logit scores), and its gradient.
+    Weights = number of models scored on each benchmark.
+      p = 1   : arithmetic mean  (= the first principal component)
+      p large : approaches the worst benchmark"""
+    idx, yc, ny, nb = data; r, parts = benchmark_r(theta, data); wn = nb / nb.sum()
+    u = np.clip(1 - r * np.abs(r), 1e-9, None)
+    um = u.max(); v = u / um; S = (wn * v ** p).sum(); F = um * S ** (1 / p); dF = S ** (1 / p - 1) * v ** (p - 1) * wn
+    g = np.zeros_like(theta)
     for j, (i, y, l) in enumerate(zip(idx, yc, ny)):
-        c, nc = parts[j]; g[i] += w[j] * (-2 * abs(r[j])) * (y / (nc * l) - r[j] * c / nc ** 2)
+        c, nc = parts[j]; g[i] += dF[j] * (-2 * abs(r[j])) * (y / (nc * l) - r[j] * c / nc ** 2)
     return F, g
 
 
-def worst_benchmark_path(X, ps, init):
-    """warm-started solutions for p in ps (each starts from the previous); returns {p: standardized score vector}"""
-    data = prep(X); th = (init - init.mean()) / init.std(); path = {}
-    for p in ps:
-        res = minimize(pnorm_obj, th, args=(p, data), jac=True, method="L-BFGS-B", options=dict(maxiter=3000, maxfun=6000))
-        th = (res.x - res.x.mean()) / res.x.std(); path[p] = th.copy()
+def pnorm_solve(X, p, init):
+    """standardized score vector minimizing the p-norm loss, starting from init"""
+    th = (init - init.mean()) / init.std()
+    res = minimize(pnorm_obj, th, args=(p, prep(X)), jac=True, method="L-BFGS-B", options=dict(maxiter=3000, maxfun=6000))
+    return (res.x - res.x.mean()) / res.x.std()
+
+
+def pnorm_path(X, ps, init):
+    """warm-started solutions for increasing p >= 1 (each starts from the previous); returns {p: standardized score vector}"""
+    path = {}; th = init
+    for p in ps: th = pnorm_solve(X, p, th); path[p] = th
     return path
-
-
-def cell_loss_solve(X, loss, init, deltas=(0.1, 0.03, 0.01)):
-    """Score theta_m with a free intercept a_b and slope g_b per benchmark, jointly minimising a cell-level loss on
-    normalised scores y_mb = (x_mb - mean_b)/sd_b, errors e_mb = y_mb - a_b - g_b theta_m:
-      mse_cells : sum_b sd_b^2 sum_m e^2 / N      squared error in raw logit units (big / high-spread benchmarks count more)
-      mse_bench : (1/B) sum_b (1/n_b) sum_m e^2   squared error, benchmarks weighted equally
-      mae_bench : (1/B) sum_b (1/n_b) sum_m |e|   absolute-value loss, |e| smoothed as sqrt(e^2 + delta^2) - delta"""
-    n, m = X.shape; I, J = np.where(~np.isnan(X)); Y0 = X[I, J]; nb = np.bincount(J, minlength=m)
-    mu = np.bincount(J, Y0, minlength=m) / nb; sd = np.sqrt(np.bincount(J, (Y0 - mu[J]) ** 2, minlength=m) / nb); Y = (Y0 - mu[J]) / sd[J]
-    W = sd[J] ** 2 / len(Y) if loss == "mse_cells" else 1 / (m * nb[J])
-    th = (init - init.mean()) / init.std(); a = np.zeros(m); g = np.zeros(m)
-    for j in range(m):
-        o = J == j; g[j], a[j] = np.polyfit(th[I[o]], Y[o], 1)
-
-    def f(par, delta):
-        t, aa, gg = par[:n], par[n:n + m], par[n + m:]; e = Y - aa[J] - gg[J] * t[I]
-        if loss == "mae_bench":
-            s = np.sqrt(e * e + delta * delta); L = (W * (s - delta)).sum(); d = W * e / s
-        else:
-            L = (W * e * e).sum(); d = 2 * W * e
-        return L, np.r_[-np.bincount(I, d * gg[J], minlength=n), -np.bincount(J, d, minlength=m), -np.bincount(J, d * t[I], minlength=m)]
-
-    par = np.r_[th, a, g]
-    for dl in (deltas if loss == "mae_bench" else (None,)):
-        par = minimize(f, par, args=(dl,), jac=True, method="L-BFGS-B", options=dict(maxiter=5000, maxfun=10000)).x
-    t = par[:n]; return (t - t.mean()) / t.std()

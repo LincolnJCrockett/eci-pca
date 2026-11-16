@@ -1,4 +1,4 @@
-"""Figures (one per claim). Reads the CSVs written by scripts 01-03.
+"""Figures (one per claim). Reads the CSVs written by scripts 01-03.  fig11 (held-out fit) was removed.
 Usage: python -I scripts/04_make_figures.py <extracted_dir> <results_dir>      -> <results_dir>/figures/
 """
 import sys, os, textwrap, time
@@ -39,22 +39,19 @@ fig, (a0, a1) = plt.subplots(2, 1, figsize=(11, 7), gridspec_kw={"height_ratios"
 a0.imshow(grp[None, :], aspect="auto", cmap=ListedColormap([ORANGE, BLUE, "#c3c2b7"])); a0.axis("off"); a0.grid(False)
 a1.imshow(B, aspect="auto", cmap=ListedColormap([SURF, "#256abf"]), interpolation="nearest"); a1.grid(False); a1.set_xticks([]); a1.set_yticks([]); a1.set_ylabel("Models, oldest at top"); a1.set_xlabel("Benchmarks")
 for x, t, c in [(len(legacy) / 2, "older, excluded", "white"), (len(legacy) + len(D.bench) / 2, "analysed (29)", "white"), (len(legacy) + len(D.bench) + len(others) / 2, "excluded (< 25 models)", INK)]: a0.text(x, 0, t, ha="center", va="center", fontsize=9, color=c)
-fig.suptitle("Only ~20% of model x benchmark cells are observed, and older benchmarks barely overlap with newer ones", x=.01, ha="left", fontweight="bold", fontsize=11); save(fig, "fig01_data_sparsity")
+fig.suptitle("Only ~20% of cells in Epoch's full model x benchmark table are observed, and older benchmarks barely overlap with newer ones", x=.01, ha="left", fontweight="bold", fontsize=11); save(fig, "fig01_data_sparsity")
 
 # ---- fig02: ECI vs PC1 ----
-pc = R1("pc1_scores.csv"); C = R1("eci_vs_pc1.csv"); fig, ax = plt.subplots(1, 2, figsize=(11, 4.8), sharey=True)
-for a, col, ttl in ((ax[0], "pc1_A", "Conventional centering (A)"), (ax[1], "pc1_AJ", "Joint intercepts (AJ)")):
-    a.scatter(pc[col], pc.eci, color=BLUE, s=24, edgecolor="#555", linewidth=.3); xs = np.linspace(pc[col].min(), pc[col].max(), 50); a.plot(xs, np.polyval(np.polyfit(pc[col], pc.eci, 1), xs), color=INK, lw=1.1)
-    a.set(xlabel="First principal component score", title=f"{ttl}: r = {C.pearson_r[col[4:]]:.3f}")
-ax[0].set_ylabel("Official ECI"); save(fig, "fig02_pc1_vs_eci")
+pc = R1("pc1_scores.csv"); C = R1("eci_vs_pc1.csv"); fig, a = plt.subplots(figsize=(6, 4.8)); col = "pc1"
+a.scatter(pc[col], pc.eci, color=BLUE, s=24, edgecolor="#555", linewidth=.3); xs = np.linspace(pc[col].min(), pc[col].max(), 50); a.plot(xs, np.polyval(np.polyfit(pc[col], pc.eci, 1), xs), color=INK, lw=1.1)
+a.set(xlabel="First principal component score", ylabel="Official ECI", title=f"The ECI is nearly the first principal component: r = {C.pearson_r["joint intercepts"]:.3f}"); save(fig, "fig02_pc1_vs_eci")
 
-# ---- fig03: variance explained ----
-Vi, Vh = R1("variance_explained_in_sample.csv"), R1("variance_explained_held_out.csv"); ks = [1, 2, 3]; fig, ax = plt.subplots(1, 2, figsize=(11, 4.6))
-ax[0].plot(ks, [Vi.R2_in_sample_equal_weight[f"PCA rank {k}, conventional (A)"] for k in ks], "o-", color=BLUE, lw=2, label="A: conventional centering"); ax[0].plot(ks, [Vi.R2_in_sample_equal_weight[f"PCA rank {k}, joint intercepts (AJ)"] for k in ks], "o-", color=VIOLET, lw=2, label="AJ: joint intercepts")
-e_ = Vi.R2_in_sample_equal_weight["official ECI as the single score"]; ax[0].axhline(e_, color=INK, ls="--", lw=1.2); ax[0].text(3, e_ - .015, "official ECI (one score)", ha="right", va="top", fontsize=9)
-ax[0].set(xlabel="Number of components", ylabel="R-squared (in sample)", ylim=(.5, 1), title=W("One properly estimated component explains ~84% of benchmark variation", 45)); ax[0].xaxis.set_major_locator(MaxNLocator(integer=True)); ax[0].legend(frameon=False, fontsize=9, loc="lower right")
-ax[1].plot(Vh.index, Vh.A, "o-", color=BLUE, lw=2, label="A"); ax[1].plot(Vh.index, Vh.AJ, "o-", color=VIOLET, lw=2, label="AJ"); ax[1].xaxis.set_major_locator(MaxNLocator(integer=True))
-ax[1].set(xlabel="Number of components", ylabel="R-squared (held-out cells)", title=W("Out of sample, one joint-intercept component is best", 45)); ax[1].legend(frameon=False, fontsize=9); save(fig, "fig03_variance_explained")
+# ---- fig03: variation explained by each principal component ----
+Vc = R1("variance_by_component.csv"); e_ = R1("eci_variance_explained.csv").R2["official_ECI_single_score"]; fig, ax = plt.subplots(figsize=(7.5, 4.8))
+ax.bar(Vc.index, Vc.explained_by_this_component, color=VIOLET, width=.6, edgecolor=SURF, linewidth=2)
+for k, v, c in zip(Vc.index, Vc.explained_by_this_component, Vc.cumulative): ax.text(k, v + .012, f"{v:.1%}\n(total {c:.0%})", ha="center", va="bottom", fontsize=8)
+ax.plot([.62, 1.38], [e_, e_], color=INK, ls="--", lw=1.2); ax.text(1.42, e_, f"official ECI as one score: {e_:.1%}", va="center", fontsize=8)
+ax.set(xlabel="Principal component", ylabel="Share of benchmark variation explained", ylim=(0, 1), title=W(f"The first component explains {Vc.explained_by_this_component[1]:.0%} of benchmark variation; each later one adds under 5%", 60)); ax.xaxis.set_major_locator(MaxNLocator(integer=True)); save(fig, "fig03_variance_explained")
 
 # ---- fig04: why AJ (selection bias) ----
 S = R1("selection_bias.csv"); fig, ax = plt.subplots(1, 2, figsize=(11, 4.8)); lo, hi = S[["observed_mean", "model_implied_mean_all_models"]].min().min() - .3, S[["observed_mean", "model_implied_mean_all_models"]].max().max() + .3
@@ -65,16 +62,16 @@ ax[1].set(xlabel="Mean ECI of models tested on the benchmark (std.)", ylabel="Ob
 
 # ---- fig05: ECI explains most benchmarks, a few poorly ----
 pb = R1("per_benchmark_explained.csv").sort_values("R2_ECI", ascending=False); fig, ax = plt.subplots(figsize=(8, 8.5)); y = np.arange(len(pb)); r = pb.R2_ECI.clip(0, 1)
-ax.barh(y, r, color=BLUE, height=.6, edgecolor=SURF, linewidth=2, label="explained by official ECI"); ax.barh(y, 1 - r, left=r, color="#f3c1ad", height=.6, edgecolor=SURF, linewidth=2, label="not explained")
-ax.scatter(pb.R2_PCA_rank1_AJ, y, color=INK, s=22, zorder=3, label="explained by rank-1 PCA (AJ)"); ax.set_yticks(y); ax.set_yticklabels(pb.index, fontsize=8); ax.invert_yaxis(); ax.grid(axis="y", visible=False); ax.set_xlim(0, 1)
-ax.set(xlabel="Share of the benchmark's variation across models", title=W("ECI explains most benchmarks well; short blue bars are benchmarks it undervalues (or that measure something else)", 60)); ax.legend(frameon=False, fontsize=9, loc="upper center", bbox_to_anchor=(.5, -.07), ncol=3); save(fig, "fig05_eci_by_benchmark")
+ax.barh(y, r, color=BLUE, height=.6, edgecolor=SURF, linewidth=2)
+for yi, v in zip(y, r): ax.text(v + .01, yi, f"{v:.2f}", va="center", fontsize=7, color=MUTED)
+ax.set_yticks(y); ax.set_yticklabels(pb.index, fontsize=8); ax.invert_yaxis(); ax.grid(axis="y", visible=False); ax.set_xlim(0, 1)
+ax.set(xlabel="Proportion of benchmark variation explained by ECI", title=W("The ECI is highly correlated with most benchmarks, but explains much less of a few", 60)); save(fig, "fig05_eci_by_benchmark")
 
-# ---- fig06: residual structure is weak ----
-ee, ec, es = R2("residual_eigenvalues.csv"), R2("residual_held_out.csv"), R2("residual_stability.csv"); fig, ax = plt.subplots(1, 3, figsize=(14, 4.3))
-ax[0].plot(ee.index, ee.eigenvalue, "o-", color=AQUA, lw=2, label="ECI residuals"); ax[0].plot(ee.index, ee.null_95th_pct, "s--", color=MUTED, label="shuffled null (95th pct)"); ax[0].set(xlabel="Component", ylabel="Eigenvalue", title=W("Some structure above chance...", 38)); ax[0].legend(frameon=False, fontsize=8); ax[0].xaxis.set_major_locator(MaxNLocator(integer=True))
-ax[1].bar(ec.index[1:], ec.change_vs_ECI_only[1:] * 100, color=ORANGE, edgecolor=SURF, linewidth=2); ax[1].axhline(0, color=MUTED, lw=.8); ax[1].set(xlabel="Components added to the ECI prediction", ylabel="Change in held-out error (%, negative = worse)", title=W("...but adding it hurts held-out prediction", 38)); ax[1].xaxis.set_major_locator(MaxNLocator(integer=True))
-ax[2].bar(es.index, es.mean_best_match_cosine, color=BLUE, width=.55, edgecolor=SURF, linewidth=2); ax[2].errorbar(es.index, es.mean_best_match_cosine, yerr=[es.mean_best_match_cosine - es.p10_best_match_cosine, np.zeros(len(es))], fmt="none", ecolor=INK, capsize=4)
-ax[2].set(ylim=(0, 1), ylabel="Bootstrap stability (cosine; whisker = 10th pct)", title=W("...and components are only moderately stable", 38)); save(fig, "fig06_residual_structure")
+# ---- fig06: residual structure vs shuffled null ----
+SH = R2("residual_variance_by_component.csv"); fig, ax = plt.subplots(figsize=(7.5, 4.6))
+ax.bar(SH.index, SH.share_of_residual_variation, color=AQUA, width=.6, edgecolor=SURF, linewidth=2, label="ECI residuals")
+ax.plot(SH.index, SH.null_95th_pct, "s--", color=MUTED, label="shuffled residuals (95th percentile)"); ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+ax.set(xlabel="Principal component of the residuals", ylabel="Share of residual variation captured", title=W(f"What the ECI leaves out has some structure: {int((SH.share_of_residual_variation > SH.null_95th_pct).sum())} components capture more than chance", 60)); ax.legend(frameon=False, fontsize=8); save(fig, "fig06_residual_structure")
 
 # ---- fig07: residual components ----
 EL = R2("residual_loadings.csv"); fig, axs = plt.subplots(1, 3, figsize=(15, 5))
@@ -83,43 +80,59 @@ for a, c in zip(axs, ["E1", "E2", "E3"]):
     a.set_yticks(range(len(sel))); a.set_yticklabels(sel.index, fontsize=8); a.axvline(0, color=MUTED, lw=.8); a.set_title(f"Component {c}", fontsize=10); a.grid(axis="y", visible=False); a.set_xlabel("Loading")
 fig.suptitle("What ECI does not explain: three tentative axes (six highest and lowest loadings each; signs are arbitrary)", x=.01, ha="left", fontweight="bold", fontsize=11); save(fig, "fig07_residual_components")
 
-# ---- fig08-11: loss functions ----
-T, P, HO, R2b, SC = R3("loss_summary.csv"), R3("worst_benchmark_path.csv"), R3("loss_held_out.csv"), R3("loss_benchmark_r2.csv"), R3("loss_score_change_points.csv")
-fig, ax = plt.subplots(figsize=(7.5, 5.5)); ax.plot(P.worst_R2, P.mean_R2, "-", color=MUTED, lw=1.5, zorder=1)
-for nm, c in [("Official ECI", INK), ("MSE (cells)", BLUE), ("MSE (benchmark avg)", AQUA), ("MAE (benchmark avg)", "#eda100"), ("Worst benchmark (p=8)", MAGENTA), ("Worst benchmark (p=64)", ORANGE)]:
-    ax.scatter(T.worst_R2[nm], T.mean_R2[nm], color=c, s=70, edgecolor="#555", linewidth=.5, zorder=3); ax.annotate(nm, (T.worst_R2[nm], T.mean_R2[nm]), fontsize=8, xytext=(6, 4 if nm != "MSE (benchmark avg)" else -11), textcoords="offset points")
-ax.set(xlabel="Worst benchmark R-squared", ylabel="Mean benchmark R-squared", title=W("Fitting the worst benchmark better costs average fit", 55)); save(fig, "fig08_loss_tradeoff")
-o = R2b.sort_values("Official ECI"); fig, ax = plt.subplots(figsize=(8, 8)); y = np.arange(len(o)); ax.hlines(y, o["Official ECI"], o["Worst benchmark (p=64)"], color=GRID, lw=2)
-ax.scatter(o["Official ECI"], y, color=BLUE, s=36, label="official ECI", zorder=3); ax.scatter(o["Worst benchmark (p=64)"], y, color=ORANGE, s=36, label="worst-benchmark loss (p=64)", zorder=3); ax.set_yticks(y); ax.set_yticklabels(o.index, fontsize=8); ax.grid(axis="y", visible=False)
-ax.set(xlabel="R-squared", title=W("Worst-benchmark loss flattens the fit: GeoBench up, METR / ARC-AGI / AIME down", 60)); ax.legend(frameon=False, fontsize=9, loc="lower right"); save(fig, "fig09_loss_per_benchmark")
-fig, ax = plt.subplots(figsize=(8, 5)); hw = D.eci_halfwidth; ax.axhspan(-hw, hw, color="#e8f0fb", label=f"typical ECI 95% interval (+/-{hw:.1f})")
-ax.scatter(eci, SC["MSE (cells)"], color=BLUE, s=18, label="MSE (cells)"); ax.scatter(eci, SC["Worst benchmark (p=64)"], color=ORANGE, s=18, label="worst benchmark (p=64)")
-for i in np.argsort(-np.abs(SC["Worst benchmark (p=64)"].to_numpy()))[:4]: ax.annotate(SC.index[i], (eci[i], SC["Worst benchmark (p=64)"].iloc[i]), fontsize=7, xytext=(4, 3), textcoords="offset points")
-ax.axhline(0, color=MUTED, lw=.8); ax.set(xlabel="Official ECI", ylabel="Change in score vs official ECI (points)", title=W("MSE moves scores within ECI's own uncertainty; the worst-benchmark loss moves some by 20+", 60)); ax.legend(frameon=False, fontsize=8); save(fig, "fig10_loss_score_changes")
-fig, ax = plt.subplots(figsize=(9, 4.8)); x = np.arange(len(HO)); ax.bar(x - .2, HO.mean_R2, .38, color=BLUE, edgecolor=SURF, linewidth=2, label="mean over benchmarks"); ax.bar(x + .2, HO.worst_R2, .38, color=ORANGE, edgecolor=SURF, linewidth=2, label="worst benchmark")
-ax.axhline(0, color=MUTED, lw=.8); ax.set_xticks(x); ax.set_xticklabels([textwrap.fill(s, 14) for s in HO.index], fontsize=8); ax.set(ylabel="Held-out R-squared", title=W("Out of sample, the worst-benchmark loss is worse on average and in the worst case", 70)); ax.legend(frameon=False, fontsize=9); save(fig, "fig11_loss_held_out")
+# ---- fig08-10: how much the index cares about the worst-fitted benchmark (p-norm loss) ----
+T, P, R2b, SC = R3("loss_summary.csv"), R3("pnorm_path.csv"), R3("loss_benchmark_r2.csv"), R3("loss_score_change_points.csv")
+L1, LI = "p=1 (average = first PC)", "p=inf (worst benchmark)"; PC = {"Official ECI": INK, L1: VIOLET, LI: ORANGE}
+Pp = P; fig, ax = plt.subplots(figsize=(7.5, 5.5)); ax.plot(Pp.worst_R2, Pp.mean_R2, "-", color=MUTED, lw=1.5, zorder=1)
+mid = Pp.drop(index=["p=1", "p=64"]); ax.scatter(mid.worst_R2, mid.mean_R2, color=MUTED, s=36, edgecolor="#555", linewidth=.4, zorder=2)
+for nm in mid.index: ax.annotate(nm.replace("p=", "p = "), (mid.worst_R2[nm], mid.mean_R2[nm]), fontsize=8, xytext=(8, 0) if nm == "p=32" else (-8, -4), textcoords="offset points", ha="left" if nm == "p=32" else "right", va="center" if nm == "p=32" else "top")
+for nm, c in PC.items():
+    ax.scatter(T.worst_R2[nm], T.mean_R2[nm], color=c, s=70, edgecolor="#555", linewidth=.5, zorder=3); off = {"Official ECI": (-8, 6), L1: (8, 4), LI: (-10, -10)}[nm]
+    ax.annotate(nm, (T.worst_R2[nm], T.mean_R2[nm]), fontsize=8, xytext=off, textcoords="offset points", ha="right" if off[0] < 0 else "left")
+ax.set(xlabel="Worst benchmark R-squared", ylabel="Mean benchmark R-squared", xlim=(None, .73), title=W("Caring more about the worst benchmark lifts it, at a cost to average fit", 55)); save(fig, "fig08_loss_tradeoff")
+o = R2b.sort_values("Official ECI"); fig, ax = plt.subplots(figsize=(8, 8)); y = np.arange(len(o)); ax.hlines(y, o["Official ECI"], o[LI], color=GRID, lw=2)
+ax.scatter(o["Official ECI"], y, color=BLUE, s=36, label="official ECI", zorder=3); ax.scatter(o[LI], y, color=ORANGE, s=36, label=LI, zorder=3); ax.set_yticks(y); ax.set_yticklabels(o.index, fontsize=8); ax.grid(axis="y", visible=False)
+ax.set(xlabel="R-squared", title=W("Fitting only the worst benchmark flattens the fit: GeoBench up, METR / ARC-AGI / AIME down", 60)); ax.legend(frameon=False, fontsize=9, loc="lower right"); save(fig, "fig09_loss_per_benchmark")
+fig, ax = plt.subplots(figsize=(8, 5)); hw = D.eci_halfwidth; ax.axhspan(-hw, hw, color="#e8f0fb", label=f"typical ECI 90% interval (+/-{hw:.1f})")
+for nm in (L1, LI): ax.scatter(eci, SC[nm], color=PC[nm], s=16, alpha=.85, label=nm)
+for i in np.argsort(-np.abs(SC[LI].to_numpy()))[:4]: ax.annotate(SC.index[i], (eci[i], SC[LI].iloc[i]), fontsize=7, xytext=(4, 3), textcoords="offset points")
+ax.axhline(0, color=MUTED, lw=.8); ax.set(xlabel="Official ECI", ylabel="Change in score vs official ECI (points)", title=W("p = 1 (the first PC) moves scores within the ECI's own uncertainty; fitting only the worst benchmark moves some by 20+", 60)); ax.legend(frameon=False, fontsize=8); save(fig, "fig10_loss_score_changes")
 
 # ---- fig12-13: scores over release date (like Epoch's ECI chart), one panel per loss ----
 import matplotlib.dates as mdates
 OT = R3("loss_over_time.csv"); dates = D.dates.to_numpy(); order = np.argsort(dates, kind="stable")
-COLS = {"Official ECI": INK, "MSE (cells)": BLUE, "MSE (benchmark avg)": AQUA, "MAE (benchmark avg)": "#eda100", "Worst benchmark (p=8)": MAGENTA, "Worst benchmark (p=64)": ORANGE}
+COLS = PC
 score = {k: eci + SC[k].to_numpy() for k in COLS}
 def frontier(sc):
     best, rec = -np.inf, []
     for i in order:
         if sc[i] > best: best = sc[i]; rec.append(i)
     return np.array(rec)
-fig, axs = plt.subplots(2, 3, figsize=(15, 8.2), sharex=True, sharey=True)
+fig, axs = plt.subplots(1, 3, figsize=(16, 5), sharex=True, sharey=True)
 for a, k in zip(axs.ravel(), COLS):
     if k != "Official ECI": a.scatter(dates, eci, s=10, color="#c3c2b7", label="official ECI")
     a.scatter(dates, score[k], s=14, color=COLS[k] if k != "Official ECI" else BLUE, alpha=.85, label=k)
     rec = frontier(score[k]); a.step(dates[rec], score[k][rec], where="post", color=INK, lw=1.4, label="frontier"); a.scatter(dates[rec], score[k][rec], s=22, color=INK, zorder=3)
     a.set_title(f"{k}  |  frontier +{OT.frontier_slope_points_per_year[k]:.1f} pts/yr (+{OT.frontier_slope_models_8plus_scores[k]:.1f} if 8+ scores)", fontsize=9); a.xaxis.set_major_locator(mdates.YearLocator()); a.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
     if k != "Official ECI": a.legend(frameon=False, fontsize=7, loc="upper left")
-for a in axs[:, 0]: a.set_ylabel("Score (ECI points)")
-fig.suptitle("Scores over release date under each loss; black = frontier (models that set a record at release)", x=.01, ha="left", fontweight="bold", fontsize=11); save(fig, "fig12_scores_over_time")
-fig, ax = plt.subplots(figsize=(9.5, 5.5))
-for k, c in COLS.items():
-    rec = frontier(score[k]); ax.step(dates[rec], score[k][rec], where="post", color=c, lw=2.2 if k in ("Official ECI", "Worst benchmark (p=64)") else 1.5, label=f"{k} (+{OT.frontier_slope_points_per_year[k]:.1f} pts/yr; +{OT.frontier_slope_models_8plus_scores[k]:.1f} using models with 8+ scores)")
-ax.xaxis.set_major_locator(mdates.YearLocator()); ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y")); ax.set(ylabel="Frontier score (ECI points)", title=W("Average losses track the official frontier; the worst-benchmark loss lifts early records, but only via models with few scores", 70)); ax.legend(frameon=False, fontsize=8, loc="upper left"); save(fig, "fig13_frontier_over_time")
+axs[0].set_ylabel("Score (ECI points)")
+fig.suptitle("Scores over release date under each p; black = frontier (models that set a record at release)", x=.01, ha="left", fontweight="bold", fontsize=11); save(fig, "fig12_scores_over_time")
+# fig13: frontier with a two-segment line broken at Epoch's estimated date (Apr 2024), one panel per loss
+yrs = ((D.dates - D.dates.min()).dt.days / 365.25).to_numpy(); tb = (BREAK_DATE - D.dates.min()).days / 365.25
+EA = pd.read_csv(f"{ex}/epoch_capabilities_index/eci_scores.csv").dropna(subset=["eci", "date"]); da = pd.to_datetime(EA.date).to_numpy(); ra = frontier_idx(EA.eci.to_numpy(), da)
+ya = (pd.to_datetime(EA.date) - D.dates.min()).dt.days.to_numpy() / 365.25; ref = OT.loc["Official ECI, all Epoch models (reference)"]
+to_date = lambda t: D.dates.min() + pd.to_timedelta(t * 365.25, unit="D")
+fig, axs = plt.subplots(1, 3, figsize=(16, 5.4), sharex=True, sharey=True)
+for a, k in zip(axs.ravel(), COLS):
+    if k == "Official ECI":
+        a.step(da[ra], EA.eci.to_numpy()[ra], where="post", color="#c3c2b7", lw=1.4, label=f"all Epoch models (reference): {ref.slope_before_break:+.1f} -> {ref.slope_after_break:+.1f} pts/yr")
+        _, _, cr = hinge_fit(ya[ra], EA.eci.to_numpy()[ra], tb); tt = np.linspace(ya[ra].min(), ya[ra].max(), 200); a.plot(to_date(tt), cr[0] + cr[1] * tt + cr[2] * np.clip(tt - tb, 0, None), color="#c3c2b7", lw=1, ls="--")
+    rec = frontier_idx(score[k], dates); a.step(dates[rec], score[k][rec], where="post", color=COLS[k], lw=1.6); a.scatter(dates[rec], score[k][rec], s=20, color=COLS[k], zorder=3)
+    _, _, c = hinge_fit(yrs[rec], score[k][rec], tb); tt = np.linspace(min(yrs[rec].min(), tb - .3), yrs[rec].max(), 200)
+    a.plot(to_date(tt), c[0] + c[1] * tt + c[2] * np.clip(tt - tb, 0, None), color=INK, lw=1.3, ls="--", label=f"two-segment fit: {OT.slope_before_break[k]:+.1f} -> {OT.slope_after_break[k]:+.1f} pts/yr")
+    a.axvline(BREAK_DATE, color=MUTED, lw=.8, ls=":")
+    a.set_title(W(f"{k}: {int(OT.n_frontier_before_break[k])} frontier model(s) before the break; after it {OT.slope_after_break[k]:+.1f} pts/yr ({OT.slope_after_break_8plus[k]:+.1f} if 8+ scores)", 52), fontsize=9)
+    a.legend(frameon=False, fontsize=7, loc="upper left"); a.xaxis.set_major_locator(mdates.YearLocator()); a.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+axs[0].set_ylabel("Frontier score (ECI points)")
+fig.suptitle(W("Frontier under each p with a break at Apr 2024 (Epoch's estimate). Slopes after the break agree; this sample has too few earlier models to estimate the slope before it", 110), x=.01, ha="left", fontweight="bold", fontsize=11); save(fig, "fig13_frontier_over_time")
 print("done")
