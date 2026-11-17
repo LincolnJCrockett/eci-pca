@@ -37,6 +37,20 @@ S["bias"] = S.observed_mean - S.model_implied_mean_all_models
 print(f"\ncorrelation of bias with strength of tested models: {np.corrcoef(S.bias, S.mean_std_ECI_of_tested_models)[0, 1]:.2f}")
 S.round(3).to_csv(f"{out}/selection_bias.csv")
 
+# ---- per benchmark: the noise level Epoch's Bayesian ECI assigns ----
+# Epoch's model: score ~ Beta with mean mu = sigmoid(slope_b (ECI_m - EDI_b)) and sd 2 sigma_b sqrt(mu (1 - mu)).
+# Epoch publishes ECI, EDI (difficulty) and slope but not sigma_b, so sigma_b is recovered as the RMS of the standardized residual
+# (y - mu) / (2 sqrt(mu (1 - mu))) over all of Epoch's scores on b (best score per model, clipped to [0.001, 0.999] as Epoch does).
+dd = D.raw; Eall = pd.read_csv(f"{ex}/epoch_capabilities_index/eci_scores.csv").set_index("Model").eci
+ed = pd.read_csv(f"{ex}/epoch_capabilities_index/edi_scores.csv").set_index("benchmark_name")
+dd = dd[dd.model.isin(Eall.index) & dd.benchmark.isin(ed.index)].groupby(["model", "benchmark"]).performance.max().reset_index()
+yb = dd.performance.clip(.001, .999); mu = 1 / (1 + np.exp(-ed.estimated_slope_scaled.reindex(dd.benchmark).values * (Eall.reindex(dd.model).values - ed.edi.reindex(dd.benchmark).values)))
+sigma_b = ((yb - mu) / (2 * np.sqrt(mu * (1 - mu)))).groupby(dd.benchmark).apply(lambda v: np.sqrt((v ** 2).mean()))
+print(f"\ncheck vs Epoch's post: a predicted 50% typically lands within 50 +/- {100*sigma_b['METR Time Horizons']:.0f}% on METR (Epoch: 46-54%), 50 +/- {100*sigma_b['VPCT']:.0f}% on VPCT (Epoch: 32-68%)")
+
 # ---- per benchmark: share of variation across models explained by the ECI and by PC1 ----
-B = pd.DataFrame({"n_models": obs.sum(0), "R2_ECI": logit_r2(eci, Xv)[0], "R2_PC1": logit_r2(pc1["joint intercepts"], Xv)[0]}, index=bench).sort_values("R2_ECI", ascending=False)
+B = pd.DataFrame({"n_models": obs.sum(0), "R2_ECI": logit_r2(eci, Xv)[0], "R2_PC1": logit_r2(pc1["joint intercepts"], Xv)[0],
+                  "epoch_noise_sigma_b": sigma_b.reindex(bench).values}, index=bench).sort_values("R2_ECI", ascending=False)
+B["noise_rank_of_29"] = B.epoch_noise_sigma_b.rank(ascending=False).astype(int)
+print(f"\nSpearman(R2_ECI, Epoch noise sigma_b) across the 29 benchmarks: {B.R2_ECI.corr(B.epoch_noise_sigma_b, method='spearman'):.2f}")
 print("\nShare of each benchmark's variation across models explained (logit scores):"); print(B.round(2).to_string()); B.round(4).to_csv(f"{out}/per_benchmark_explained.csv")

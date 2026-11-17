@@ -87,6 +87,12 @@ the average of the $R^2_b$ weighted by the number of models on each benchmark. F
 
 *Clipping.* On the logit scale, 0% and 100% are $\mp\infty$ and must be clipped (to 1% and 99% here). A model scoring 0% on a benchmark that is too hard for it then gets a residual whose size depends on where the clip is set. With clipping at 0.1%, 1% and 3%, the $R^2$ of Mystery Game Puzzles (18% of scores at 0%) is 0.51, 0.61 and 0.67; measured on raw scores with an S-curve fit it would be 0.89 (Furniture Assembly, 26% clipped: 0.79 here, 0.91 on raw scores). Benchmarks with no floor or ceiling scores (GeoBench, MirrorCode, Fiction.LiveBench, SimpleQA) get the same $R^2$ either way. Logit scores are used anyway so that every step, including the PCA, uses one scale.
 
+*Epoch's noise level per benchmark.* The current ECI is Bayesian, with a Beta likelihood: a score has mean $\mu_{mb}=\sigma\big(\alpha_b(\mathrm{ECI}_m-\mathrm{EDI}_b)\big)$ and SD $2\sigma_b\sqrt{\mu_{mb}(1-\mu_{mb})}$, where $\sigma_b$ is the benchmark's noise level (Álvarez and Barry, 2026). Epoch publishes $\mathrm{ECI}_m$, $\mathrm{EDI}_b$ and $\alpha_b$ (`eci_scores.csv`, `edi_scores.csv`) but not $\sigma_b$. We recover it from all of Epoch's scores on $b$ (best score per model, clipped to $[0.001,0.999]$ as Epoch does) as
+
+$$\hat\sigma_b=\sqrt{\operatorname{mean}_m\Big(\frac{y_{mb}-\mu_{mb}}{2\sqrt{\mu_{mb}(1-\mu_{mb})}}\Big)^2}.$$
+
+This is a moment estimate, not Epoch's posterior, but it matches the two values Epoch reports. A model predicted to score 50% typically lands within 50 ± 3% on METR Time Horizons (Epoch: 46–54%) and 50 ± 17% on VPCT (Epoch: 32–68%). Across the 29 benchmarks, $\hat\sigma_b$ and $R^2_b$ have Spearman correlation −0.79 (`epoch_noise_sigma_b` and `noise_rank_of_29` in `per_benchmark_explained.csv`).
+
 
 **Scripts.** `01_pc1_vs_eci.py` (`per_benchmark_explained.csv`, `eci_variance_explained.csv`) and `02_eci_residual.py` (the same per-benchmark table with an "unexplained" column, `eci_explained_by_benchmark.csv`).
 
@@ -154,7 +160,7 @@ and component $k$ captures $S(k)-S(k-1)$ (`residual_variance_by_component.csv`).
 
 **Script.** `02_eci_residual.py`. Outputs: `eci_explained_by_benchmark.csv`, `residual_loadings.csv`, `residual_scores.csv`, `residual_variance_by_component.csv`, `residual_stability.csv`.
 
-**Comparison with "Claudiness"** (README note 2; `05_claudiness.py`, outputs in `results/05_claudiness/`). G. Burnham's Gradient Update (Epoch AI, 20 November 2025) publishes the seven largest weights of the second principal component of Epoch's benchmark data. The script compares these with the E1 loadings on the benchmarks both include, and computes the cosine between E1's loadings and those of the second component of the ordinary PCA (§4). It reports the E1 percentile of the ten models Burnham names as most and least Claude-like, and of every Claude Opus model. It also gives the share of E1's variance explained by developer: the ratio of between-developer to total variance, over the 10 developers with at least 5 models, with a permutation p-value from 2,000 shuffles of the developer labels. Finally it gives the share explained by Anthropic against all other developers.
+**Comparison with "Claudiness"** (README note on Claudiness; `05_claudiness.py`, outputs in `results/05_claudiness/`). G. Burnham's Gradient Update (Epoch AI, 20 November 2025) publishes the seven largest weights of the second principal component of Epoch's benchmark data. The script compares these with the E1 loadings on the benchmarks both include, and computes the cosine between E1's loadings and those of the second component of the ordinary PCA (§4). It reports the E1 percentile of the ten models Burnham names as most and least Claude-like, and of every Claude Opus model. It also gives the share of E1's variance explained by developer: the ratio of between-developer to total variance, over the 10 developers with at least 5 models, with a permutation p-value from 2,000 shuffles of the developer labels. Finally it gives the share explained by Anthropic against all other developers.
 
 ---
 
